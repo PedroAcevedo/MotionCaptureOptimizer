@@ -37,6 +37,12 @@ public class MarkerConfig
         set { score = value; }
     }
 
+    public GameObject CurrentInstance
+    {
+        get { return currentInstance; }
+        set { currentInstance = value; }
+    }
+
     public void placeMarkets(int numberOfMarkers, Vector3[] vertices)
     {
         for (int i = 0; i < numberOfMarkers; i++)
@@ -51,16 +57,21 @@ public class MarkerConfig
             config.Add(new Marker(vertices[randomIndex], currentMarker));
         }
     }
+    
+    int layermask = (int)(1 << 8);
 
     public void evaluateConfig(List<GameObject> cameras)
     {
+        float currentScore = 0.0f; 
+
         for (int i = 0; i < this.config.Count; i++)
         {
             for (int j = 0; j < cameras.Count; j++)
             {
                 RaycastHit objectHit;
 
-                if (Physics.Linecast(cameras[j].transform.position, this.config[i].currentPosition(), out objectHit))
+                Vector3 dir = this.config[i].currentPosition() - cameras[j].GetComponent<Camera>().transform.position;
+                if (Physics.Raycast(cameras[j].GetComponent<Camera>().transform.position, dir, out objectHit))
                 {
                     if (this.config[i].isMe(objectHit.transform.gameObject))
                     {
@@ -69,10 +80,12 @@ public class MarkerConfig
                 }
             }
 
-            this.score += this.config[i].Score * 100 / cameras.Count;
+            currentScore += (this.config[i].Score / cameras.Count);
         }
 
-        this.score = this.score / this.config.Count;
+        currentScore = currentScore / this.config.Count;
+
+        this.score += currentScore;
     }
 
     public void changePosition(Vector3 position)
@@ -89,6 +102,7 @@ public class MarkerConfig
         {
             Vector3 markerPosition = this.currentInstance.transform.TransformPoint(this.config[i].Position);
             this.config[i].MarkerInstance.transform.position = markerPosition;
+            this.config[i].Score = 0;
         }
     }
 
@@ -108,9 +122,14 @@ public class MarkerConfig
     }
 
 
+    public float getScore(int positions)
+    {
+        return this.score / positions;
+    }
+
     public string showScore(int iteration)
     {
-        return iteration + " SCORE : " + this.score + " % at Position: " + this.position;
+        return iteration + " SCORE : " + this.score ;
     }
 
 }

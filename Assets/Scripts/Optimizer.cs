@@ -9,6 +9,7 @@ public class Optimizer : MonoBehaviour
 
     public int numberOfMarkers;
     public int iterations;
+    public float evaluatePositions;
     public List<GameObject> cameras;
     public GameObject motionMesh;
     public GameObject mainCamera;
@@ -28,6 +29,11 @@ public class Optimizer : MonoBehaviour
     private int currentIteration = 0;
     private int currentCamera = 0;
     private bool complete = false;
+    private Vector3[] meshVertices;
+    private float posI;
+    private float posJ;
+    private float posK;
+    private float separation;
 
     #endregion
 
@@ -39,8 +45,14 @@ public class Optimizer : MonoBehaviour
         markerInstace = Resources.Load<GameObject>("Prefabs/Marker");
 
         configurations = new List<MarkerConfig>();
+        
+        posI = -2.0f;
+        posJ = minY;
+        posK = -2.0f;
 
-        InstanceMesh(getRandomPosition());
+        separation = 4 / evaluatePositions;
+
+        InstanceMesh();
 
     }
 
@@ -53,25 +65,47 @@ public class Optimizer : MonoBehaviour
             {
                 configurations[currentIteration].evaluateConfig(cameras);
 
-                Debug.Log(configurations[currentIteration].showScore(currentIteration));
+                configurations[currentIteration].changePosition(new Vector3(posI, posJ, posK));
+                configurations[currentIteration].resetConfig();
 
-                if (configurations[currentIteration].Score > MAX_SCORE)
+                posK += separation;
+
+                if (posK > 2)
                 {
-                    BestConfig = currentIteration;
-                    MAX_SCORE = configurations[currentIteration].Score;
+                    posJ += separation;
+                    posK = -2;
+
+                    if (posJ > 2)
+                    {
+                        posI += separation;
+                        posJ = minY;
+                    }
                 }
 
-                initialConfig.changePosition(getRandomPosition());
+                if (posI > 2)
+                {
+                    Debug.Log(configurations[currentIteration].showScore(currentIteration));
 
-                configurations.Add(new MarkerConfig(initialConfig));
+                    if (configurations[currentIteration].Score > MAX_SCORE)
+                    {
+                        BestConfig = currentIteration;
+                        MAX_SCORE = configurations[currentIteration].Score;
+                    }
 
-                currentIteration++;
+                    configurations[currentIteration].CurrentInstance.SetActive(false);
+                    currentIteration++;
+                    posI = -2.0f;
+                    posJ = minY;
+                    posK = -2.0f;
+                    InstanceMesh();
+                }
+
             }
             else
             {
-                configurations[BestConfig].resetConfig();
-                Debug.Log("BEST CONFIG " + BestConfig + ": " + configurations[BestConfig].Score + "% at Position: " + configurations[BestConfig].Position);
-
+                Debug.Log("BEST CONFIG " + configurations[BestConfig].showScore(BestConfig));
+                configurations[BestConfig].CurrentInstance.SetActive(true);
+                configurations[BestConfig].changePosition(new Vector3(0.0f, minY, 0.0f));
                 complete = true;
             }
         }
@@ -79,7 +113,7 @@ public class Optimizer : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown("space") && complete)
+        if (Input.GetKeyDown("space")) //&& complete)
         {
             currentCamera++;
 
@@ -118,16 +152,28 @@ public class Optimizer : MonoBehaviour
         mainCamera.SetActive(false);
     }
 
-    private void InstanceMesh(Vector3 position)
+    private void InstanceMesh()
     {
-        currentMotionMesh = Instantiate(motionMesh, position, Quaternion.identity);
-        MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
+        if (currentIteration < iterations)
+        {
+            currentMotionMesh = Instantiate(motionMesh, new Vector3(posI, posJ, posK), Quaternion.identity);
 
-        initialConfig = new MarkerConfig(position, currentMotionMesh);
+            MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
+            meshVertices = currentMesh.mesh.vertices;
 
-        initialConfig.placeMarkets(numberOfMarkers, currentMesh.mesh.vertices);
+            initialConfig = defineMarkerConfig();
+        }
+    }
 
-        configurations.Add(new MarkerConfig(initialConfig));
+    private MarkerConfig defineMarkerConfig()
+    {
+        MarkerConfig config = new MarkerConfig(new Vector3(posI, posJ, posK), currentMotionMesh);
+
+        config.placeMarkets(numberOfMarkers, meshVertices);
+
+        configurations.Add(config);
+
+        return config;
     }
 
     private Vector3 getRandomPosition()
