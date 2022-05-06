@@ -38,4 +38,8 @@ public class Marker
         set { score = value; }
     }
 
+    public Vector3 currentPosition()
+    {
+        return markerInstance.transform.position;
+    }
 }
