@@ -34,6 +34,7 @@ public class Optimizer : MonoBehaviour
     private float posJ;
     private float posK;
     private float separation;
+    private float initialTime;
 
     #endregion
 
@@ -54,6 +55,7 @@ public class Optimizer : MonoBehaviour
 
         InstanceMesh();
 
+        initialTime = Time.time;
     }
 
     // Update is called once per frame
@@ -84,7 +86,7 @@ public class Optimizer : MonoBehaviour
 
                 if (posI > 2)
                 {
-                    Debug.Log(configurations[currentIteration].showScore(currentIteration));
+                    Debug.Log(configurations[currentIteration].showScore(currentIteration, Mathf.Pow(evaluatePositions, 3)));
 
                     if (configurations[currentIteration].Score > MAX_SCORE)
                     {
@@ -99,11 +101,11 @@ public class Optimizer : MonoBehaviour
                     posK = -2.0f;
                     InstanceMesh();
                 }
-
             }
             else
             {
-                Debug.Log("BEST CONFIG " + configurations[BestConfig].showScore(BestConfig));
+                Debug.Log("BEST CONFIG: " + configurations[BestConfig].showScore(BestConfig, Mathf.Pow(evaluatePositions, 3)));
+                Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
                 configurations[BestConfig].CurrentInstance.SetActive(true);
                 configurations[BestConfig].changePosition(new Vector3(0.0f, minY, 0.0f));
                 complete = true;

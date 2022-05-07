@@ -58,8 +58,6 @@ public class MarkerConfig
         }
     }
     
-    int layermask = (int)(1 << 8);
-
     public void evaluateConfig(List<GameObject> cameras)
     {
         float currentScore = 0.0f; 
@@ -122,14 +120,14 @@ public class MarkerConfig
     }
 
 
-    public float getScore(int positions)
+    public float getScore(float positions)
     {
-        return this.score / positions;
+        return (this.score*100)/ positions;
     }
 
-    public string showScore(int iteration)
+    public string showScore(int iteration, float positions)
     {
-        return iteration + " SCORE : " + this.score ;
+        return iteration + " SCORE : " + this.getScore(positions) + "%";
     }
 
 }
