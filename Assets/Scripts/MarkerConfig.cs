@@ -17,11 +17,12 @@ public class MarkerConfig
         this.score = 0.0f;
     }
 
-    public MarkerConfig(MarkerConfig markerConfig)
+    public MarkerConfig(MarkerConfig markerConfig, Vector3 position, Vector3[] vertices)
     {
-        this.position = markerConfig.position + Vector3.zero;
+        this.position = position;
         this.currentInstance = markerConfig.currentInstance;
-        this.config = deepCopyMarkers(markerConfig.currentInstance, markerConfig.config);
+        this.currentInstance.transform.position = position;
+        this.config = deepCopyMarkers(markerConfig.currentInstance, markerConfig.config, vertices);
         this.score = 0.0f;
     }
 
@@ -104,16 +105,18 @@ public class MarkerConfig
         }
     }
 
-    public List<Marker> deepCopyMarkers(GameObject instance, List<Marker> previusConfig)
+    public List<Marker> deepCopyMarkers(GameObject instance, List<Marker> previusConfig, Vector3[] vertices)
     {
         List<Marker> markers = new List<Marker>();
 
         for (int i = 0; i < previusConfig.Count; i++)
         {
-            Vector3 markerPosition = instance.transform.TransformPoint(previusConfig[i].Position);
+            int randomIndex = (int)UnityEngine.Random.Range(0, vertices.Length - 1);
+
+            Vector3 markerPosition = instance.transform.TransformPoint(vertices[randomIndex]);
             previusConfig[i].MarkerInstance.transform.position = markerPosition;
 
-            markers.Add(new Marker(previusConfig[i].Position, previusConfig[i].MarkerInstance));
+            markers.Add(new Marker(vertices[randomIndex], previusConfig[i].MarkerInstance));
         }
 
         return markers;
@@ -122,7 +125,7 @@ public class MarkerConfig
 
     public float getScore(float positions)
     {
-        return (this.score*100)/ positions;
+        return (this.score*100) / positions;
     }
 
     public string showScore(int iteration, float positions)
