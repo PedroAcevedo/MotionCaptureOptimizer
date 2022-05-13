@@ -13,6 +13,20 @@ public class Optimizer : MonoBehaviour
     public List<GameObject> cameras;
     public GameObject motionMesh;
     public GameObject mainCamera;
+    public int MAX_NUMBER_OF_MARKERS = 10;
+    public int MIN_NUMBER_OF_MARKERS = 4;
+
+    //Terms
+    [Range(0.0f, 1.0f)]
+    public float targetVisibility;
+    [Range(0.0f, 1.0f)]
+    public float targetOverlap;
+
+    //Weight
+    [Range(0.0f, 1.0f)]
+    public float weightVisibility;
+    [Range(0.0f, 1.0f)]
+    public float weightOverlap;
 
     public static GameObject markerInstace;
 
@@ -21,13 +35,14 @@ public class Optimizer : MonoBehaviour
     #region  Private Fields
 
     private GameObject currentMotionMesh;
-    private List<MarkerConfig> configurations;
-    private MarkerConfig initialConfig;
+    private List<float> configurationScores;
+    private List<float> bestoScores;
+    private List<string> movements;
+    private MarkerConfig tempConfig;
+    private MarkerConfig currentConfig;
     private int BestConfig = 0;
-    private float MAX_SCORE = -1;
     private int currentIteration = 0;
     private int currentCamera = 0;
-    private bool complete = false;
     private Vector3[] meshVertices;
     private float posI;
     private float posJ;
@@ -38,7 +53,13 @@ public class Optimizer : MonoBehaviour
     private float[] minAxis = { -2.0f, 0.6f, -2.0f };
     private float[] maxAxis = { 0.0f, 0.0f, 0.0f };
     private float totalPositions = 1.0f;
-
+    private float sphereRadius;
+    private float temperature = 1.0f;
+    private float currentAcceptanceInterval = 1.0f;
+    private bool complete = false;
+    private bool isAccepted = false;
+    private bool initialEvaluation = true;
+    
     #endregion
 
     #region MonoBehaviour Callbacks
@@ -47,8 +68,16 @@ public class Optimizer : MonoBehaviour
     void Start()
     {
         markerInstace = Resources.Load<GameObject>("Prefabs/Marker");
+        movements = new List<string>();
+        sphereRadius = markerInstace.GetComponent<SphereCollider>().radius * 0.01f;
 
-        configurations = new List<MarkerConfig>();
+        //Define movements
+        movements.Add(MotionCaptureConstants.MOVE_ACTION_ADD);
+        movements.Add(MotionCaptureConstants.MOVE_ACTION_RELOCATE);
+        movements.Add(MotionCaptureConstants.MOVE_ACTION_DELETE);
+
+        configurationScores = new List<float>();
+        bestoScores = new List<float>();
 
         posI = minAxis[0];
         posJ = minAxis[1];
@@ -71,52 +100,92 @@ public class Optimizer : MonoBehaviour
     {
         if (!complete)
         {
-            if (currentIteration < iterations)
+            tempConfig.evaluateConfig(cameras);
+
+            tempConfig.changePosition(new Vector3(posI, posJ, posK));
+            tempConfig.resetConfig();
+
+            posK += separation[2];
+
+            if (posK > maxAxis[2])
             {
-                configurations[currentIteration].evaluateConfig(cameras);
+                posJ += separation[1];
+                posK = minAxis[2];
 
-                configurations[currentIteration].changePosition(new Vector3(posI, posJ, posK));
-                configurations[currentIteration].resetConfig();
-
-                posK += separation[2];
-
-                if (posK > maxAxis[2])
+                if (posJ > maxAxis[1])
                 {
-                    posJ += separation[1];
-                    posK = minAxis[2];
-
-                    if (posJ > maxAxis[1])
-                    {
-                        posI += separation[0];
-                        posJ = minAxis[1];
-                    }
-                }
-
-                if (posI > maxAxis[0])
-                {
-                    Debug.Log(configurations[currentIteration].showScore(currentIteration, totalPositions));
-
-                    if (configurations[currentIteration].Score > MAX_SCORE)
-                    {
-                        BestConfig = currentIteration;
-                        MAX_SCORE = configurations[currentIteration].Score;
-                    }
-
-                    posI = minAxis[0];
+                    posI += separation[0];
                     posJ = minAxis[1];
-                    posK = minAxis[2];
-
-                    configurations.Add(nextMarkerConfig(configurations[currentIteration]));
-                    currentIteration++;
                 }
             }
-            else
+
+            if (posI > maxAxis[0])
             {
-                Debug.Log("BEST CONFIG: " + configurations[BestConfig].showScore(BestConfig, totalPositions));
-                Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
-                configurations[BestConfig].changePosition(new Vector3(0.0f, minAxis[1], 0.0f));
-                configurations[BestConfig].resetConfig();
-                complete = true;
+                configurationScores.Add(calculateCost(tempConfig));
+
+                posI = minAxis[0];
+                posJ = minAxis[1];
+                posK = minAxis[2];
+
+                if (!initialEvaluation)
+                {
+                    float prob = Random.Range(0.0f, 1.0f);
+
+                    currentAcceptanceInterval = Mathf.Exp(-(configurationScores[currentIteration] - configurationScores[BestConfig]) / temperature);
+
+                    if (prob < currentAcceptanceInterval)
+                    {
+                        isAccepted = true;
+                    }
+
+                    if ((configurationScores[currentIteration] < configurationScores[BestConfig]) && isAccepted)
+                    {
+                        isAccepted = false;
+                        BestConfig = configurationScores.Count - 1;
+                        currentConfig = copyMarkerConfig(tempConfig);
+                        bestoScores.Add(configurationScores[currentIteration]);
+                        Debug.Log("Accepted solutions " + bestoScores.Count);
+
+                        if (bestoScores.Count == 100)
+                        {
+                            if (isCompleted())
+                            {
+                                tempConfig.clearConfig();
+                                currentConfig.changePosition(new Vector3(0.0f, minAxis[1], 0.0f));
+                                currentConfig.resetConfigToCurrent();
+                                OptimizerReportController.reportCostLog(bestoScores);
+                                Debug.Log("BEST CONFIG: ");
+                                calculateCost(currentConfig);
+                                Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
+                                complete = true;
+                            }
+                            else
+                            {
+                                nextMove();
+                            }
+
+                            bestoScores.Clear();
+
+                        }
+                        else
+                        {
+                            nextMove();
+                        }
+                    }
+                    else
+                    {
+                        nextMove();
+                    }
+
+                }
+                else
+                {
+                    initialEvaluation = false;
+                    nextMove();
+                }
+
+                currentIteration++;
+                validateAcceptanceInterval();
             }
         }
     }
@@ -171,7 +240,8 @@ public class Optimizer : MonoBehaviour
             MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
             meshVertices = currentMesh.mesh.vertices;
 
-            initialConfig = defineMarkerConfig();
+            tempConfig = defineMarkerConfig();
+            currentConfig = copyMarkerConfig(tempConfig);
         }
     }
 
@@ -181,14 +251,135 @@ public class Optimizer : MonoBehaviour
 
         config.placeMarkets(numberOfMarkers, meshVertices);
 
-        configurations.Add(config);
-
         return config;
     }
 
-    private MarkerConfig nextMarkerConfig(MarkerConfig currentConfig)
+    private MarkerConfig copyMarkerConfig(MarkerConfig currentConfig)
     {
-        return new MarkerConfig(currentConfig, new Vector3(posI, posJ, posK), meshVertices);
+        return new MarkerConfig(currentConfig, new Vector3(posI, posJ, posK));
+    }
+
+    private void nextMove()
+    {
+        tempConfig.Score = 0.0f;
+        int move = -1;
+        bool isvalidMove = false;
+
+        while (!isvalidMove)
+        {
+            float nextMoveSelector = Random.Range(0.0f, 1.0f);
+
+            if (nextMoveSelector < 0.3)
+            {
+                move = 0;
+            }
+            else
+            {
+                if (nextMoveSelector < 0.6)
+                {
+                    move = 2;
+                }
+                else
+                {
+                    move = 1;
+                }
+            }
+
+            switch ((string)movements[move])
+            {
+                case MotionCaptureConstants.MOVE_ACTION_ADD:
+
+                    isvalidMove = tempConfig.addMarker(meshVertices, MAX_NUMBER_OF_MARKERS);
+                    if (isvalidMove)
+                    {
+                        Debug.Log("MOVE: ADD MARKER");
+                    }
+                    else
+                    {
+                        Debug.Log("MOVE: ADD MARKER FAILED");
+                    }
+                    break;
+                case MotionCaptureConstants.MOVE_ACTION_RELOCATE:
+
+                    isvalidMove = tempConfig.relocateMarker(meshVertices);
+                    if (isvalidMove)
+                    {
+                        Debug.Log("MOVE: RELOCATE MARKER");
+                    }
+                    else
+                    {
+                        Debug.Log("MOVE: RELOCATE MARKER FAILED");
+                    }
+
+                    break;
+                case MotionCaptureConstants.MOVE_ACTION_DELETE:
+
+                    isvalidMove = tempConfig.deleteMarker(MIN_NUMBER_OF_MARKERS);
+                    if (isvalidMove)
+                    {
+                        Debug.Log("MOVE: DELETE MARKER");
+                    }
+                    else
+                    {
+                        Debug.Log("MOVE: DELETE MARKER FAILED");
+                    }
+
+                    break;
+            }
+        }
+
+    }
+
+    private float calculateCost(MarkerConfig markerConfig)
+    {
+        float costVisibility = Mathf.Abs(markerConfig.getScore(totalPositions) - targetVisibility);
+        float costOverlap = Mathf.Abs(markerConfig.getOverlap(sphereRadius) - targetOverlap);
+
+        float totalCost = costVisibility * weightVisibility + costOverlap * weightOverlap;
+
+        Debug.Log("Iteration " + currentIteration + " -> Cost: " + totalCost + ", Visibility: " + costVisibility + " Overlap: " + costOverlap + " Number of Markers: " + markerConfig.Config.Count);
+
+        return totalCost;
+    }
+
+    private void validateAcceptanceInterval()
+    {
+        if (currentIteration == 100)
+        {
+            temperature = 0.75f;
+        } else
+        {
+            if (currentIteration == 200)
+            {
+                temperature = 0.50f;
+            }
+            else
+            {
+                if (currentIteration == 400)
+                {
+                    temperature = 0.25f;
+                }
+                else
+                {
+                    if (currentIteration == 500)
+                    {
+                        temperature = 0.0f;
+                    }
+                }
+            }
+        }
+    }
+
+    private bool isCompleted()
+    {
+        bool isCompleted = true;
+
+        for(int i = 0; i < bestoScores.Count; i++)
+        {
+            if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[i]) / bestoScores[bestoScores.Count - 1]) > 0.05f) return false;
+        }
+
+        return isCompleted;
     }
 
     #endregion

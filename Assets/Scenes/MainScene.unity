@@ -948,7 +948,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8ed8b17c6c21d646b545386f9ecca84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numberOfMarkers: 15
+  numberOfMarkers: 5
   iterations: 20
   evaluatePositions: 8
   cameras:
@@ -962,6 +962,12 @@ MonoBehaviour:
   - {fileID: 683309309}
   motionMesh: {fileID: 2560910069211117234, guid: 9dc1fbbeaaa22bf4eaaf6cf5b8f02e60, type: 3}
   mainCamera: {fileID: 963194225}
+  MAX_NUMBER_OF_MARKERS: 10
+  MIN_NUMBER_OF_MARKERS: 4
+  targetVisibility: 0.8
+  targetOverlap: 0.2
+  weightVisibility: 1
+  weightOverlap: 0.3
 --- !u!4 &1196702243
 Transform:
   m_ObjectHideFlags: 0
