@@ -119,8 +119,9 @@ public class MarkerConfig
             {
                 RaycastHit objectHit;
 
-                Vector3 dir = this.config[i].currentPosition() - cameras[j].GetComponent<Camera>().transform.position;
-                if (Physics.Raycast(cameras[j].GetComponent<Camera>().transform.position, dir, out objectHit))
+                Ray ray = cameras[j].GetComponent<Camera>().ScreenPointToRay(cameras[j].GetComponent<Camera>().WorldToScreenPoint(this.config[i].currentPosition()));
+                
+                if (Physics.Raycast(ray, out objectHit))
                 {
                     if (this.config[i].isMe(objectHit.transform.gameObject))
                     {
