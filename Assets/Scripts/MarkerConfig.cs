@@ -139,7 +139,7 @@ public class MarkerConfig
         }
 
         currentScore = currentScore / this.config.Count;
-
+        
         this.score += currentScore;
     }
 

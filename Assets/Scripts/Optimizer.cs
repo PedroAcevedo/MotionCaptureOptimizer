@@ -59,10 +59,17 @@ public class Optimizer : MonoBehaviour
     private bool complete = false;
     private bool isAccepted = false;
     private bool initialEvaluation = true;
-    
+    private int lastIteration;
+
     #endregion
 
     #region MonoBehaviour Callbacks
+
+    void Awake()
+    {
+        QualitySettings.vSyncCount = 0;  // VSync must be disabled
+        Application.targetFrameRate = 60;
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -89,6 +96,8 @@ public class Optimizer : MonoBehaviour
             separation[i] = (maxAxis[i] - minAxis[i]) / (evaluatePositions - 1);
             totalPositions *= evaluatePositions;
         }
+
+        Debug.Log("Positions ss" + totalPositions);
 
         InstanceMesh();
 
@@ -131,22 +140,27 @@ public class Optimizer : MonoBehaviour
                 {
                     float prob = Random.Range(0.0f, 1.0f);
 
-                    currentAcceptanceInterval = Mathf.Exp(-(configurationScores[currentIteration] - configurationScores[BestConfig]) / temperature);
+                    //currentAcceptanceInterval = Mathf.Exp(-(configurationScores[currentIteration] - configurationScores[BestConfig]) / temperature);
 
-                    if (prob < currentAcceptanceInterval)
+                    if (prob < temperature)
                     {
                         isAccepted = true;
                     }
 
-                    if ((configurationScores[currentIteration] < configurationScores[BestConfig]) && isAccepted)
+                    if ((configurationScores[currentIteration] < configurationScores[BestConfig]) || isAccepted)
                     {
                         isAccepted = false;
+                        lastIteration = currentIteration;
                         BestConfig = configurationScores.Count - 1;
                         currentConfig = copyMarkerConfig(tempConfig);
                         bestoScores.Add(configurationScores[currentIteration]);
                         Debug.Log("Accepted solutions " + bestoScores.Count);
+                        Debug.Log("Iteration " + currentIteration + " -> Cost: " + configurationScores[BestConfig]);
 
-                        if (bestoScores.Count == 100)
+                    }
+                    else
+                    {
+                        if (temperature == 0)
                         {
                             if (isCompleted())
                             {
@@ -155,28 +169,14 @@ public class Optimizer : MonoBehaviour
                                 currentConfig.resetConfigToCurrent();
                                 OptimizerReportController.reportCostLog(bestoScores);
                                 Debug.Log("BEST CONFIG: ");
-                                calculateCost(currentConfig);
+                                //calculateCost(currentConfig);
                                 Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
                                 complete = true;
                             }
-                            else
-                            {
-                                nextMove();
-                            }
-
-                            bestoScores.Clear();
-
-                        }
-                        else
-                        {
-                            nextMove();
-                        }
-                    }
-                    else
-                    {
-                        nextMove();
+                        } 
                     }
 
+                    nextMove();
                 }
                 else
                 {
@@ -337,31 +337,31 @@ public class Optimizer : MonoBehaviour
 
         float totalCost = costVisibility * weightVisibility + costOverlap * weightOverlap;
 
-        Debug.Log("Iteration " + currentIteration + " -> Cost: " + totalCost + ", Visibility: " + costVisibility + " Overlap: " + costOverlap + " Number of Markers: " + markerConfig.Config.Count);
+        //Debug.Log("Iteration " + currentIteration + " -> Cost: " + totalCost + ", Visibility: " + costVisibility + " Overlap: " + costOverlap + " Number of Markers: " + markerConfig.Config.Count);
 
         return totalCost;
     }
 
     private void validateAcceptanceInterval()
     {
-        if (currentIteration == 100)
+        if (currentIteration == 50)
         {
             temperature = 0.75f;
         } else
         {
-            if (currentIteration == 200)
+            if (currentIteration == 100)
             {
                 temperature = 0.50f;
             }
             else
             {
-                if (currentIteration == 400)
+                if (currentIteration == 150)
                 {
                     temperature = 0.25f;
                 }
                 else
                 {
-                    if (currentIteration == 500)
+                    if (currentIteration == 200)
                     {
                         temperature = 0.0f;
                     }
@@ -372,11 +372,22 @@ public class Optimizer : MonoBehaviour
 
     private bool isCompleted()
     {
-        bool isCompleted = true;
-
-        for(int i = 0; i < bestoScores.Count; i++)
+        bool isCompleted = true; 
+        
+        if(bestoScores.Count > 2)
         {
-            if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[i]) / bestoScores[bestoScores.Count - 1]) > 0.05f) return false;
+            if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[bestoScores.Count - 2]) / bestoScores[bestoScores.Count - 1]) > 0.05f)
+            {
+                isCompleted = false;
+            }
+        } else
+        {
+            isCompleted = false;
+        }
+
+        if (currentIteration > (lastIteration + 100))
+        {
+            isCompleted = true;
         }
 
         return isCompleted;
