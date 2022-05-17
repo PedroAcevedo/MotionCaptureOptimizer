@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class MarkerConfig
 {
+
+    const int layerMask = 1 << 3;
+
     private GameObject currentInstance;
     private Vector3 position;
     private List<Marker> config;
@@ -120,8 +123,10 @@ public class MarkerConfig
                 RaycastHit objectHit;
 
                 Ray ray = cameras[j].GetComponent<Camera>().ScreenPointToRay(cameras[j].GetComponent<Camera>().WorldToScreenPoint(this.config[i].currentPosition()));
-                
-                if (Physics.Raycast(ray, out objectHit))
+
+                Debug.DrawLine(ray.origin, ray.direction * 500, Color.green);
+
+                if (Physics.Raycast(ray, out objectHit, 500, layerMask))
                 {
                     if (this.config[i].isMe(objectHit.transform.gameObject))
                     {
