@@ -11,6 +11,10 @@ public class MarkerConfig
     private Vector3 position;
     private List<Marker> config;
     private float score;
+    private string lastMove;
+
+    private int selectedMarker;
+    private Vector3 lastMarkerPosition;
 
     public MarkerConfig(Vector3 position, GameObject currentInstance)
     {
@@ -57,6 +61,7 @@ public class MarkerConfig
 
     public bool addMarker(Vector3[] vertices, int max)
     {
+
         bool isValid = false;
 
         if(this.config.Count < max)
@@ -70,6 +75,7 @@ public class MarkerConfig
 
             config.Add(new Marker(vertices[randomIndex], currentMarker));
             isValid = true;
+            lastMove = MotionCaptureConstants.MOVE_ACTION_ADD;
         }
 
         return isValid;
@@ -78,9 +84,14 @@ public class MarkerConfig
 
     public bool relocateMarker(Vector3[] vertices)
     {
+        lastMove = MotionCaptureConstants.MOVE_ACTION_MODIFY;
+
         int randomMarker = (int)UnityEngine.Random.Range(0, config.Count - 1);
         int randomIndex = (int)UnityEngine.Random.Range(0, vertices.Length - 1);
-        
+
+        selectedMarker = randomMarker;
+        lastMarkerPosition = config[randomMarker].Position;
+
         config[randomMarker].Position = vertices[randomIndex];
         Vector3 markerPosition = this.currentInstance.transform.TransformPoint(vertices[randomIndex]);
 
@@ -96,12 +107,47 @@ public class MarkerConfig
         if (this.config.Count > min)
         {
             int randomMarker = (int)UnityEngine.Random.Range(0, config.Count - 1);
+            lastMarkerPosition = config[randomMarker].Position;
             GameObject.Destroy(config[randomMarker].MarkerInstance);
             config.RemoveAt(randomMarker);
             isValid = true;
+
+            lastMove = MotionCaptureConstants.MOVE_ACTION_DELETE;
         }
 
         return isValid;
+    }
+
+    public void revertMove()
+    {
+        switch (lastMove)
+        {
+            case MotionCaptureConstants.MOVE_ACTION_ADD:
+                Debug.Log("MOVE: ADD MARKER FAILED");
+
+                GameObject.Destroy(config[this.config.Count - 1].MarkerInstance);
+                config.RemoveAt(this.config.Count - 1);
+
+                break;
+            case MotionCaptureConstants.MOVE_ACTION_MODIFY:
+                Debug.Log("MOVE: MODIFY MARKER FAILED");
+
+                this.config[selectedMarker].Position = lastMarkerPosition;
+                this.config[selectedMarker].MarkerInstance.transform.position = this.currentInstance.transform.TransformPoint(this.config[selectedMarker].Position);
+                
+                break;
+            case MotionCaptureConstants.MOVE_ACTION_DELETE:
+                Debug.Log("MOVE: DELETE MARKER FAILED");
+
+                Vector3 markerPosition = this.currentInstance.transform.TransformPoint(lastMarkerPosition);
+
+                GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
+                currentMarker.transform.parent = this.currentInstance.transform;
+
+                config.Add(new Marker(lastMarkerPosition, currentMarker));
+
+                break;
+        }
     }
 
     public void placeMarkets(int numberOfMarkers, Vector3[] vertices)
@@ -210,6 +256,13 @@ public class MarkerConfig
         }
 
         return overlap / Utils.permutationsWithoutRepetitions(this.config.Count, 2);
+    }
+
+    float alphaGaussian = 1.0f;
+    
+    public float getMarkerCost(int targetMarker)
+    {
+        return Mathf.Exp(-(1 / (2 * Mathf.Pow(alphaGaussian, 2))) * Mathf.Pow((float)(this.config.Count - targetMarker), 2));
     }
 
     public List<Marker> deepCopyMarkers(GameObject instance, List<Marker> previusConfig)

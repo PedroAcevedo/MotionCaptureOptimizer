@@ -21,12 +21,16 @@ public class Optimizer : MonoBehaviour
     public float targetVisibility;
     [Range(0.0f, 1.0f)]
     public float targetOverlap;
+    [Range(1, 10)]
+    public int targetMarkerNumber;
 
     //Weight
     [Range(0.0f, 1.0f)]
     public float weightVisibility;
     [Range(0.0f, 1.0f)]
     public float weightOverlap;
+    [Range(0.0f, 1.0f)]
+    public float weightMarkerNumber;
 
     public static GameObject markerInstace;
 
@@ -80,7 +84,7 @@ public class Optimizer : MonoBehaviour
 
         //Define movements
         movements.Add(MotionCaptureConstants.MOVE_ACTION_ADD);
-        movements.Add(MotionCaptureConstants.MOVE_ACTION_RELOCATE);
+        movements.Add(MotionCaptureConstants.MOVE_ACTION_MODIFY);
         movements.Add(MotionCaptureConstants.MOVE_ACTION_DELETE);
 
         configurationScores = new List<float>();
@@ -142,7 +146,7 @@ public class Optimizer : MonoBehaviour
 
                     //currentAcceptanceInterval = Mathf.Exp(-(configurationScores[currentIteration] - configurationScores[BestConfig]) / temperature);
 
-                    if (prob < temperature)
+                    if (prob <= temperature)
                     {
                         isAccepted = true;
                     }
@@ -151,12 +155,12 @@ public class Optimizer : MonoBehaviour
                     {
                         isAccepted = false;
                         lastIteration = currentIteration;
-                        BestConfig = configurationScores.Count - 1;
                         currentConfig = copyMarkerConfig(tempConfig);
                         bestoScores.Add(configurationScores[currentIteration]);
+                        BestConfig = configurationScores.Count - 1;
                         Debug.Log("Accepted solutions " + bestoScores.Count);
-                        Debug.Log("Iteration " + currentIteration + " -> Cost: " + configurationScores[BestConfig]);
 
+                        nextMove();
                     }
                     else
                     {
@@ -169,14 +173,20 @@ public class Optimizer : MonoBehaviour
                                 currentConfig.resetConfigToCurrent();
                                 OptimizerReportController.reportCostLog(bestoScores);
                                 Debug.Log("BEST CONFIG: ");
-                                //calculateCost(currentConfig);
+                                calculateCost(currentConfig);
                                 Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
                                 complete = true;
+                            } else
+                            {
+                                tempConfig.revertMove();
+                                nextMove();
                             }
-                        } 
+                        } else
+                        {
+                            tempConfig.revertMove();
+                            nextMove();
+                        }
                     }
-
-                    nextMove();
                 }
                 else
                 {
@@ -294,21 +304,13 @@ public class Optimizer : MonoBehaviour
                     {
                         Debug.Log("MOVE: ADD MARKER");
                     }
-                    else
-                    {
-                        Debug.Log("MOVE: ADD MARKER FAILED");
-                    }
                     break;
-                case MotionCaptureConstants.MOVE_ACTION_RELOCATE:
+                case MotionCaptureConstants.MOVE_ACTION_MODIFY:
 
                     isvalidMove = tempConfig.relocateMarker(meshVertices);
                     if (isvalidMove)
                     {
-                        Debug.Log("MOVE: RELOCATE MARKER");
-                    }
-                    else
-                    {
-                        Debug.Log("MOVE: RELOCATE MARKER FAILED");
+                        Debug.Log("MOVE: MODIFY MARKER");
                     }
 
                     break;
@@ -318,10 +320,6 @@ public class Optimizer : MonoBehaviour
                     if (isvalidMove)
                     {
                         Debug.Log("MOVE: DELETE MARKER");
-                    }
-                    else
-                    {
-                        Debug.Log("MOVE: DELETE MARKER FAILED");
                     }
 
                     break;
@@ -334,10 +332,11 @@ public class Optimizer : MonoBehaviour
     {
         float costVisibility = Mathf.Abs(markerConfig.getScore(totalPositions) - targetVisibility);
         float costOverlap = Mathf.Abs(markerConfig.getOverlap(sphereRadius) - targetOverlap);
+        float costMarkerNumber = 1 - markerConfig.getMarkerCost(targetMarkerNumber);
 
-        float totalCost = costVisibility * weightVisibility + costOverlap * weightOverlap;
+        float totalCost = weightVisibility * costVisibility + weightOverlap * costOverlap + weightMarkerNumber * costMarkerNumber;
 
-        //Debug.Log("Iteration " + currentIteration + " -> Cost: " + totalCost + ", Visibility: " + costVisibility + " Overlap: " + costOverlap + " Number of Markers: " + markerConfig.Config.Count);
+        Debug.Log("Iteration " + currentIteration + " -> Cost: " + totalCost + ", Visibility: " + costVisibility + " Overlap: " + costOverlap + " # Marker cost: " + costMarkerNumber + " # Markers: " + markerConfig.Config.Count);
 
         return totalCost;
     }
