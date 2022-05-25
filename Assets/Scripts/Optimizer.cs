@@ -58,12 +58,13 @@ public class Optimizer : MonoBehaviour
     private float[] maxAxis = { 0.0f, 0.0f, 0.0f };
     private float totalPositions = 1.0f;
     private float sphereRadius;
-    private float temperature = 1.0f;
+    private float temperature = 12.0f;
     private float currentAcceptanceInterval = 1.0f;
     private bool complete = false;
     private bool isAccepted = false;
     private bool initialEvaluation = true;
     private int lastIteration;
+    private float Boltzmann = 0.0f;
 
     #endregion
 
@@ -134,6 +135,12 @@ public class Optimizer : MonoBehaviour
 
             if (posI > maxAxis[0])
             {
+                if (isCompleted())
+                {
+                    placeBestSolution();
+                    return;
+                }
+
                 configurationScores.Add(calculateCost(tempConfig));
 
                 posI = minAxis[0];
@@ -144,48 +151,23 @@ public class Optimizer : MonoBehaviour
                 {
                     float prob = Random.Range(0.0f, 1.0f);
 
-                    //currentAcceptanceInterval = Mathf.Exp(-(configurationScores[currentIteration] - configurationScores[BestConfig]) / temperature);
+                    float cost = configurationScores[BestConfig] - configurationScores[currentIteration];
 
-                    if (prob <= temperature)
+
+                    if (prob < temperature)
                     {
+                        //Debug.Log("Acceptance interval: " + currentAcceptanceInterval);
                         isAccepted = true;
                     }
 
-                    if ((configurationScores[currentIteration] < configurationScores[BestConfig]) || isAccepted)
+                    if ( cost >= 0.0f || isAccepted)
                     {
-                        isAccepted = false;
-                        lastIteration = currentIteration;
-                        currentConfig = copyMarkerConfig(tempConfig);
-                        bestoScores.Add(configurationScores[currentIteration]);
-                        BestConfig = configurationScores.Count - 1;
-                        Debug.Log("Accepted solutions " + bestoScores.Count);
-
-                        nextMove();
+                        acceptSolution();
                     }
                     else
                     {
-                        if (temperature == 0)
-                        {
-                            if (isCompleted())
-                            {
-                                tempConfig.clearConfig();
-                                currentConfig.changePosition(new Vector3(0.0f, minAxis[1], 0.0f));
-                                currentConfig.resetConfigToCurrent();
-                                OptimizerReportController.reportCostLog(bestoScores);
-                                Debug.Log("BEST CONFIG: ");
-                                calculateCost(currentConfig);
-                                Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
-                                complete = true;
-                            } else
-                            {
-                                tempConfig.revertMove();
-                                nextMove();
-                            }
-                        } else
-                        {
-                            tempConfig.revertMove();
-                            nextMove();
-                        }
+                        tempConfig.revertMove();
+                        nextMove();
                     }
                 }
                 else
@@ -202,7 +184,7 @@ public class Optimizer : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown("space")) //&& complete)
+        if (Input.GetKeyDown("space") && complete)
         {
             currentCamera++;
 
@@ -369,11 +351,39 @@ public class Optimizer : MonoBehaviour
         }
     }
 
+    private void acceptSolution()
+    {
+        isAccepted = false;
+        lastIteration = currentIteration;
+        currentConfig = copyMarkerConfig(tempConfig);
+        bestoScores.Add(configurationScores[currentIteration]);
+        BestConfig = configurationScores.Count - 1;
+
+        Debug.Log("Accepted solutions " + bestoScores.Count);
+
+        nextMove();
+    }
+
+    private void placeBestSolution()
+    {
+        complete = true;
+
+        tempConfig.clearConfig();
+        currentConfig.changePosition(new Vector3(0.0f, minAxis[1], 0.0f));
+        currentConfig.resetConfigToCurrent();
+
+        OptimizerReportController.reportCostLog(bestoScores);
+        
+        Debug.Log("BEST CONFIG: ");
+        calculateCost(currentConfig);
+        Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
+    }
+
     private bool isCompleted()
     {
         bool isCompleted = true; 
         
-        if(bestoScores.Count > 2)
+        if(bestoScores.Count > 2 && temperature == 0)
         {
             if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[bestoScores.Count - 2]) / bestoScores[bestoScores.Count - 1]) > 0.05f)
             {
@@ -384,7 +394,7 @@ public class Optimizer : MonoBehaviour
             isCompleted = false;
         }
 
-        if (currentIteration > (lastIteration + 100))
+        if (currentIteration > (lastIteration + 100) && temperature == 0)
         {
             isCompleted = true;
         }
