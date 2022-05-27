@@ -65,6 +65,7 @@ public class Optimizer : MonoBehaviour
     private bool initialEvaluation = true;
     private int lastIteration;
     private float Boltzmann = 0.0f;
+    private List<Vector2> cameraPair;
 
     #endregion
 
@@ -81,6 +82,7 @@ public class Optimizer : MonoBehaviour
     {
         markerInstace = Resources.Load<GameObject>("Prefabs/Marker");
         movements = new List<string>();
+        cameraPair = new List<Vector2>();
         sphereRadius = markerInstace.GetComponent<SphereCollider>().radius * 0.01f;
 
         //Define movements
@@ -102,11 +104,11 @@ public class Optimizer : MonoBehaviour
             totalPositions *= evaluatePositions;
         }
 
-        Debug.Log("Positions ss" + totalPositions);
-
         InstanceMesh();
 
         initialTime = Time.time;
+
+        selectCameraPair();
     }
 
     // Update is called once per frame
@@ -114,7 +116,7 @@ public class Optimizer : MonoBehaviour
     {
         if (!complete)
         {
-            tempConfig.evaluateConfig(cameras);
+            tempConfig.evaluateConfig(cameras, cameraPair);
 
             tempConfig.changePosition(new Vector3(posI, posJ, posK));
             tempConfig.resetConfig();
@@ -152,7 +154,6 @@ public class Optimizer : MonoBehaviour
                     float prob = Random.Range(0.0f, 1.0f);
 
                     float cost = configurationScores[BestConfig] - configurationScores[currentIteration];
-
 
                     if (prob < temperature)
                     {
@@ -210,6 +211,44 @@ public class Optimizer : MonoBehaviour
 
     #region Private Methods
 
+    private void selectCameraPair()
+    {
+        List<int> selectedCamera = new List<int>();
+
+        for(int i = 0; i < cameras.Count; i++)
+        {
+            selectedCamera.Add(i);
+
+            for (int j = cameras.Count - 1; j >= 0; j--)
+            {
+                if(i != j && !selectedCamera.Contains(j))
+                {
+                    if (isParallel(cameras[i].GetComponent<Camera>().transform.forward, cameras[j].GetComponent<Camera>().transform.forward))
+                    {
+                        Debug.Log("Camera parallel dir -> " + i + " - " + j);
+                    } else
+                    {
+                        selectedCamera.Add(j);
+                        cameraPair.Add(new Vector2(i, j));
+                        Debug.Log("Camera pair -> " + cameraPair[cameraPair.Count - 1]);
+                        break;
+                    }
+                }
+                    
+            }
+        }
+
+    }
+
+    private bool isParallel(Vector3 a, Vector3 b)
+    {
+        float ratioX = (a.x / b.x);
+        float ratioY = (a.y / b.y);
+        float ratioZ = (a.z / b.z);
+
+        return  ratioX == ratioY && ratioY == ratioZ;
+    }
+
     private void SwapCamera()
     {
         mainCamera.SetActive(true);
@@ -261,19 +300,19 @@ public class Optimizer : MonoBehaviour
         {
             float nextMoveSelector = Random.Range(0.0f, 1.0f);
 
-            if (nextMoveSelector < 0.3)
+            if (nextMoveSelector < 0.4)
             {
-                move = 0;
+                move = 1;
             }
             else
             {
-                if (nextMoveSelector < 0.6)
+                if (nextMoveSelector < 0.7)
                 {
-                    move = 2;
+                    move = 0;
                 }
                 else
                 {
-                    move = 1;
+                    move = 2;
                 }
             }
 
@@ -356,10 +395,10 @@ public class Optimizer : MonoBehaviour
         isAccepted = false;
         lastIteration = currentIteration;
         currentConfig = copyMarkerConfig(tempConfig);
+        BestConfig = currentIteration;
         bestoScores.Add(configurationScores[currentIteration]);
-        BestConfig = configurationScores.Count - 1;
 
-        Debug.Log("Accepted solutions " + bestoScores.Count);
+        Debug.Log("Accepted solutions " + bestoScores.Count + " current cost -> " + configurationScores[currentIteration]);
 
         nextMove();
     }
@@ -383,18 +422,22 @@ public class Optimizer : MonoBehaviour
     {
         bool isCompleted = true; 
         
-        if(bestoScores.Count > 2 && temperature == 0)
+        if(bestoScores.Count > 20 && temperature == 0)
         {
-            if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[bestoScores.Count - 2]) / bestoScores[bestoScores.Count - 1]) > 0.05f)
+            int lastCosts = bestoScores.Count - 20;
+            for (int i = 0; i < 20; i++)
             {
-                isCompleted = false;
+                if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[lastCosts + i]) / bestoScores[bestoScores.Count - 1]) > 0.05f)
+                {
+                    isCompleted = false;
+                }
             }
         } else
         {
             isCompleted = false;
         }
 
-        if (currentIteration > (lastIteration + 100) && temperature == 0)
+        if (currentIteration > (lastIteration + 400) && temperature == 0)
         {
             isCompleted = true;
         }

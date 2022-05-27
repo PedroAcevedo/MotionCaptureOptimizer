@@ -15,6 +15,7 @@ public class MarkerConfig
 
     private int selectedMarker;
     private Vector3 lastMarkerPosition;
+    private Color[] laserColor = { Color.green, Color.red, Color.blue, Color.yellow };
 
     public MarkerConfig(Vector3 position, GameObject currentInstance)
     {
@@ -107,11 +108,13 @@ public class MarkerConfig
         if (this.config.Count > min)
         {
             int randomMarker = (int)UnityEngine.Random.Range(0, config.Count - 1);
+
+            selectedMarker = randomMarker;
             lastMarkerPosition = config[randomMarker].Position;
+
             GameObject.Destroy(config[randomMarker].MarkerInstance);
             config.RemoveAt(randomMarker);
             isValid = true;
-
             lastMove = MotionCaptureConstants.MOVE_ACTION_DELETE;
         }
 
@@ -144,7 +147,7 @@ public class MarkerConfig
                 GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
                 currentMarker.transform.parent = this.currentInstance.transform;
 
-                config.Add(new Marker(lastMarkerPosition, currentMarker));
+                config.Insert(selectedMarker, new Marker(lastMarkerPosition, currentMarker));
 
                 break;
         }
@@ -158,21 +161,26 @@ public class MarkerConfig
         }
     }
     
-    public void evaluateConfig(List<GameObject> cameras)
+    public void evaluateConfig(List<GameObject> cameras, List<Vector2> cameraPair)
     {
         float currentScore = 0.0f; 
 
         for (int i = 0; i < this.config.Count; i++)
         {
-            for (int j = 0; j < cameras.Count; j++)
+            for (int j = 0; j < cameraPair.Count; j++)
             {
                 RaycastHit objectHit;
 
-                Ray ray = cameras[j].GetComponent<Camera>().ScreenPointToRay(cameras[j].GetComponent<Camera>().WorldToScreenPoint(this.config[i].currentPosition()));
+                int camera1 = (int)cameraPair[j].x;
+                int camera2 = (int)cameraPair[j].y;
 
-                Debug.DrawLine(ray.origin, ray.direction * 500, Color.green);
+                Ray camera1Ray = cameras[camera1].GetComponent<Camera>().ScreenPointToRay(cameras[camera1].GetComponent<Camera>().WorldToScreenPoint(this.config[i].currentPosition()));
+                Ray camera2Ray = cameras[camera2].GetComponent<Camera>().ScreenPointToRay(cameras[camera2].GetComponent<Camera>().WorldToScreenPoint(this.config[i].currentPosition()));
 
-                if (Physics.Raycast(ray, out objectHit, 500, layerMask))
+                Debug.DrawLine(camera1Ray.origin, camera1Ray.direction * 500, laserColor[j]);
+                Debug.DrawLine(camera2Ray.origin, camera2Ray.direction * 500, laserColor[j]);
+
+                if (Physics.Raycast(camera1Ray, out objectHit, 500, layerMask) && Physics.Raycast(camera2Ray, out objectHit, 500, layerMask))
                 {
                     if (this.config[i].isMe(objectHit.transform.gameObject))
                     {
@@ -181,7 +189,7 @@ public class MarkerConfig
                 }
             }
 
-            currentScore += (this.config[i].Score / cameras.Count);
+            currentScore += (this.config[i].Score / cameraPair.Count);
         }
 
         currentScore = currentScore / this.config.Count;
