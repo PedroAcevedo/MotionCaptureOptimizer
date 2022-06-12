@@ -66,7 +66,8 @@ public class Optimizer : MonoBehaviour
     private int lastIteration;
     private float Boltzmann = 0.0f;
     private List<Vector2> cameraPair;
-
+    private bool continueIteration = true;
+    private float selectedScore;
     #endregion
 
     #region MonoBehaviour Callbacks
@@ -74,7 +75,7 @@ public class Optimizer : MonoBehaviour
     void Awake()
     {
         QualitySettings.vSyncCount = 0;  // VSync must be disabled
-        Application.targetFrameRate = 60;
+        Application.targetFrameRate = 30;
     }
 
     // Start is called before the first frame update
@@ -114,7 +115,7 @@ public class Optimizer : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        if (!complete)
+        if (!complete && continueIteration)
         {
             tempConfig.evaluateConfig(cameras, cameraPair);
 
@@ -137,6 +138,8 @@ public class Optimizer : MonoBehaviour
 
             if (posI > maxAxis[0])
             {
+                //continueIteration = false;
+
                 if (isCompleted())
                 {
                     placeBestSolution();
@@ -153,15 +156,16 @@ public class Optimizer : MonoBehaviour
                 {
                     float prob = Random.Range(0.0f, 1.0f);
 
-                    float cost = configurationScores[BestConfig] - configurationScores[currentIteration];
-
-                    if (prob < temperature)
+                    if (prob > temperature)
                     {
                         //Debug.Log("Acceptance interval: " + currentAcceptanceInterval);
                         isAccepted = true;
+                    } else
+                    {
+                        isAccepted = false;
                     }
 
-                    if ( cost >= 0.0f || isAccepted)
+                    if (configurationScores[currentIteration] <= selectedScore || isAccepted == true)
                     {
                         acceptSolution();
                     }
@@ -174,6 +178,8 @@ public class Optimizer : MonoBehaviour
                 else
                 {
                     initialEvaluation = false;
+                    bestoScores.Add(configurationScores[currentIteration]);
+                    selectedScore = configurationScores[currentIteration];
                     nextMove();
                 }
 
@@ -195,6 +201,11 @@ public class Optimizer : MonoBehaviour
             }
 
             SwapCamera();
+        }
+
+        if (Input.GetKeyDown("m"))
+        {
+            continueIteration = true;        
         }
     }
 
@@ -364,29 +375,20 @@ public class Optimizer : MonoBehaviour
 
     private void validateAcceptanceInterval()
     {
-        if (currentIteration == 50)
+        switch (currentIteration)
         {
-            temperature = 0.75f;
-        } else
-        {
-            if (currentIteration == 100)
-            {
-                temperature = 0.50f;
-            }
-            else
-            {
-                if (currentIteration == 150)
-                {
-                    temperature = 0.25f;
-                }
-                else
-                {
-                    if (currentIteration == 200)
-                    {
-                        temperature = 0.0f;
-                    }
-                }
-            }
+            case 50:
+                temperature = 0.25f;
+                break;
+            case 100:
+                temperature = 0.5f;
+                break;
+            case 150:
+                temperature = 0.75f;
+                break;
+            case 200:
+                temperature = 1.0f;
+                break;
         }
     }
 
@@ -396,9 +398,10 @@ public class Optimizer : MonoBehaviour
         lastIteration = currentIteration;
         currentConfig = copyMarkerConfig(tempConfig);
         BestConfig = currentIteration;
-        bestoScores.Add(configurationScores[currentIteration]);
+        selectedScore = configurationScores[currentIteration];
+        bestoScores.Add(selectedScore);
 
-        Debug.Log("Accepted solutions " + bestoScores.Count + " current cost -> " + configurationScores[currentIteration]);
+        Debug.Log("Iteration "+ currentIteration + "Accepted solutions " + bestoScores.Count + " current cost -> " + configurationScores[currentIteration]);
 
         nextMove();
     }
@@ -422,7 +425,7 @@ public class Optimizer : MonoBehaviour
     {
         bool isCompleted = true; 
         
-        if(bestoScores.Count > 20 && temperature == 0)
+        if(bestoScores.Count > 20 && temperature == 1)
         {
             int lastCosts = bestoScores.Count - 20;
             for (int i = 0; i < 20; i++)
@@ -437,7 +440,7 @@ public class Optimizer : MonoBehaviour
             isCompleted = false;
         }
 
-        if (currentIteration > (lastIteration + 400) && temperature == 0)
+        if (currentIteration > (lastIteration + 400) && temperature == 1)
         {
             isCompleted = true;
         }
