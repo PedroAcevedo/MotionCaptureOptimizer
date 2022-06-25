@@ -12,6 +12,7 @@ public class MarkerConfig
     private List<Marker> config;
     private float score;
     private string lastMove;
+    private GameObject markerList;
 
     private int selectedMarker;
     private Vector3 lastMarkerPosition;
@@ -23,6 +24,7 @@ public class MarkerConfig
         this.currentInstance = currentInstance;
         this.config = new List<Marker>();
         this.score = 0.0f;
+        this.markerList = currentInstance.transform.GetChild(2).gameObject;
     }
 
     public MarkerConfig(MarkerConfig markerConfig, Vector3 position)
@@ -32,6 +34,8 @@ public class MarkerConfig
         this.currentInstance.transform.position = position;
         this.config = deepCopyMarkers(markerConfig.CurrentInstance, markerConfig.Config);
         this.score = markerConfig.Score;
+        this.markerList = currentInstance.transform.GetChild(2).gameObject;
+
     }
 
     public Vector3 Position
@@ -58,6 +62,12 @@ public class MarkerConfig
         set { config = value; }
     }
 
+    public GameObject MarkerList
+    {
+        get { return markerList; }
+        set { markerList = value; }
+    }
+
     //MOVE
 
     public bool addMarker(Vector3[] vertices, int max)
@@ -72,7 +82,7 @@ public class MarkerConfig
             Vector3 markerPosition = this.currentInstance.transform.TransformPoint(vertices[randomIndex]);
 
             GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
-            currentMarker.transform.parent = this.currentInstance.transform;
+            currentMarker.transform.parent = this.markerList.transform;
 
             config.Add(new Marker(vertices[randomIndex], currentMarker));
             isValid = true;
@@ -145,7 +155,7 @@ public class MarkerConfig
                 Vector3 markerPosition = this.currentInstance.transform.TransformPoint(lastMarkerPosition);
 
                 GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
-                currentMarker.transform.parent = this.currentInstance.transform;
+                currentMarker.transform.parent = this.markerList.transform;
 
                 config.Insert(selectedMarker, new Marker(lastMarkerPosition, currentMarker));
 
@@ -230,7 +240,7 @@ public class MarkerConfig
             Vector3 markerPosition = this.currentInstance.transform.TransformPoint(this.config[i].Position);
 
             GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
-            currentMarker.transform.parent = this.currentInstance.transform;
+            currentMarker.transform.parent = this.markerList.transform;
             this.config[i].MarkerInstance = currentMarker;
         }
     }
@@ -262,6 +272,8 @@ public class MarkerConfig
                 }
             }
         }
+
+        //Debug.Log("Count --> " + count + "Permutations -->" + Utils.permutationsWithoutRepetitions(this.config.Count, 2));
 
         return overlap / Utils.permutationsWithoutRepetitions(this.config.Count, 2);
     }

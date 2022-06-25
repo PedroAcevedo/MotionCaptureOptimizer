@@ -15,13 +15,15 @@ public class Optimizer : MonoBehaviour
     public GameObject mainCamera;
     public int MAX_NUMBER_OF_MARKERS = 10;
     public int MIN_NUMBER_OF_MARKERS = 4;
+    public GameObject[] initialPattern;
+    public Vector3[] transformations;
 
     //Terms
     [Range(0.0f, 1.0f)]
     public float targetVisibility;
     [Range(0.0f, 1.0f)]
     public float targetOverlap;
-    [Range(1, 10)]
+    [Range(1, 20)]
     public int targetMarkerNumber;
 
     //Weight
@@ -68,6 +70,8 @@ public class Optimizer : MonoBehaviour
     private List<Vector2> cameraPair;
     private bool continueIteration = true;
     private float selectedScore;
+    private PatternMatchHelper patternHelper;
+
     #endregion
 
     #region MonoBehaviour Callbacks
@@ -81,6 +85,8 @@ public class Optimizer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        patternHelper = new PatternMatchHelper(initialPattern, transformations);
+
         markerInstace = Resources.Load<GameObject>("Prefabs/Marker");
         movements = new List<string>();
         cameraPair = new List<Vector2>();
@@ -160,12 +166,9 @@ public class Optimizer : MonoBehaviour
                     {
                         //Debug.Log("Acceptance interval: " + currentAcceptanceInterval);
                         isAccepted = true;
-                    } else
-                    {
-                        isAccepted = false;
                     }
 
-                    if (configurationScores[currentIteration] <= selectedScore || isAccepted == true)
+                    if (configurationScores[currentIteration] < selectedScore || isAccepted == true)
                     {
                         acceptSolution();
                     }
@@ -215,7 +218,7 @@ public class Optimizer : MonoBehaviour
 
     public static GameObject InstanceMarker(Vector3 position)
     {
-        return Instantiate(markerInstace, position, Quaternion.identity);
+        return Instantiate(markerInstace, position, Quaternion.identity); 
     }
 
     #endregion
@@ -365,6 +368,11 @@ public class Optimizer : MonoBehaviour
         float costVisibility = Mathf.Abs(markerConfig.getScore(totalPositions) - targetVisibility);
         float costOverlap = Mathf.Abs(markerConfig.getOverlap(sphereRadius) - targetOverlap);
         float costMarkerNumber = 1 - markerConfig.getMarkerCost(targetMarkerNumber);
+
+       // patternHelper.patternDiameter = patternHelper.diameter(this.currentConfig.MarkerList);
+       // patternHelper.pattern = this.currentConfig.MarkerList;
+
+       // float costPatternMatch = Mathf.Abs(patternHelper.calculatePatternCost() - targetOverlap); ;
 
         float totalCost = weightVisibility * costVisibility + weightOverlap * costOverlap + weightMarkerNumber * costMarkerNumber;
 

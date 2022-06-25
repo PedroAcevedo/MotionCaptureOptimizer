@@ -21,6 +21,6 @@ public class Utils
 
     public static float permutationsWithoutRepetitions(int n, int r)
     {
-        return permutations(n) / permutations(n - r);
+        return permutations(n) / (permutations(n - r));
     }
 }

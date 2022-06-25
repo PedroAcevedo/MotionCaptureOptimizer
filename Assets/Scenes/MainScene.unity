@@ -948,7 +948,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8ed8b17c6c21d646b545386f9ecca84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  numberOfMarkers: 10
+  numberOfMarkers: 5
   iterations: 20
   evaluatePositions: 2
   cameras:
@@ -964,12 +964,26 @@ MonoBehaviour:
   mainCamera: {fileID: 963194225}
   MAX_NUMBER_OF_MARKERS: 10
   MIN_NUMBER_OF_MARKERS: 4
+  initialPattern:
+  - {fileID: 132223353118803599, guid: 35c844a6737f0c0429156992e0b3dd3b, type: 3}
+  - {fileID: 4313929924183332949, guid: 1d3c358ece763a6409f14dc8cf070d58, type: 3}
+  - {fileID: 463773841933560048, guid: ccc3373decb7f9f45a0e03b5d48000dc, type: 3}
+  transformations:
+  - {x: 0, y: 0, z: 0}
+  - {x: 30, y: 0, z: 0}
+  - {x: 30, y: 0, z: 0}
+  - {x: 60, y: 0, z: 0}
+  - {x: -30, y: 30, z: 0}
+  - {x: -30, y: 30, z: 0}
+  - {x: 0, y: 60, z: 0}
   targetVisibility: 0.8
   targetOverlap: 0.2
   targetMarkerNumber: 7
+  targetPatternMatch: 0.5
   weightVisibility: 1
-  weightOverlap: 0.3
-  weightMarkerNumber: 1
+  weightOverlap: 0.2
+  weightMarkerNumber: 0.8
+  weightPatternMatch: 0.2
 --- !u!4 &1196702243
 Transform:
   m_ObjectHideFlags: 0

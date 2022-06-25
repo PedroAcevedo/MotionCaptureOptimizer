@@ -2,29 +2,37 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PatternScale : MonoBehaviour
+public class PatternMatchHelper
 {
     public GameObject pattern;
-    public GameObject[] InitialPattern;
+    public float patternDiameter;
+
+    public GameObject[] initialPattern;
     public Vector3[] transformations;
 
     private bool isDistanceCalculated = false;
     private List<GameObject> patternInScene;
+
+    public PatternMatchHelper(GameObject[] initialPattern, Vector3[] transformations)
+    {
+        this.initialPattern = initialPattern;
+        this.transformations = transformations;
+    }
+
     // Start is called before the first frame update
-    void Start()
+    public float calculatePatternCost()
     {
         patternInScene = new List<GameObject>();
 
-        foreach (GameObject pattern in InitialPattern)
+        foreach (GameObject pattern in initialPattern)
         {
-            patternInScene.Add(Instantiate(pattern, new Vector3(0.0f, 0.6f, 0.0f), Quaternion.identity));
+            patternInScene.Add(GameObject.Instantiate(pattern, this.pattern.transform.parent.position, Quaternion.identity));
         }
 
-        Vector3 centroid = getCentroid(pattern);
-        float diamaterA = diameter(pattern);
+        //patternDiameter = diameter(pattern);
 
-        Debug.Log("Diameter --> " + diamaterA);
-
+        float patternCostAverage = 0.0f;
+    
         for (int i = 0; i < patternInScene.Count; i++)
         {
             float minHd = float.MaxValue;
@@ -33,13 +41,13 @@ public class PatternScale : MonoBehaviour
             {
                 patternInScene[i].transform.Rotate(rotation.x, rotation.y, rotation.z);
 
-                Vector3 centroid2 = getCentroid(patternInScene[i]);
                 float diamaterB = diameter(patternInScene[i]);
 
                 foreach (Transform marker in patternInScene[i].transform)
                 {
-                    marker.position = marker.position * (diamaterA / diamaterB);
+                    marker.position = marker.position * (patternDiameter / diamaterB);
                 }
+
                 //Debug.Log("Final distances --> " + diamaterA + " - " + diamaterB);
 
                 float HD = haurdoffDistance(getPointSet(pattern), getPointSet(patternInScene[i]));
@@ -50,14 +58,27 @@ public class PatternScale : MonoBehaviour
                 }
 
             }
-
-            Debug.Log("Pattern Cost " + i + " --> " + getPatternCost(diamaterA, minHd));
+            patternCostAverage += getPatternCost(patternDiameter, minHd);
         }
+
+        for (int i = 0; i<patternInScene.Count; i++)
+        {
+            GameObject.Destroy(patternInScene[i]);
+        }
+
+        return patternCostAverage / patternInScene.Count;
     }
 
     public float getPatternCost(float diameter, float distance)
     {
-        return Mathf.Abs(diameter - distance) / diameter;
+        float cost = Mathf.Abs((diameter/2) - distance) / (diameter / 2);
+
+        if(cost > 1.0f)
+        {
+            cost = 1.0f;
+        }
+
+        return cost;
     }
 
     public Vector3 getCentroid(GameObject markers)
@@ -145,10 +166,5 @@ public class PatternScale : MonoBehaviour
         }
 
         return maxDistance;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
     }
 }
