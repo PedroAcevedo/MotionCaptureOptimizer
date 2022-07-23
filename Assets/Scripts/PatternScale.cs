@@ -8,7 +8,6 @@ public class PatternScale : MonoBehaviour
     public GameObject[] InitialPattern;
     public Vector3[] transformations;
 
-    private bool isDistanceCalculated = false;
     private List<GameObject> patternInScene;
     // Start is called before the first frame update
     void Start()

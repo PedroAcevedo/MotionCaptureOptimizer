@@ -960,7 +960,7 @@ MonoBehaviour:
   - {fileID: 1767205698}
   - {fileID: 902737774}
   - {fileID: 683309309}
-  motionMesh: {fileID: 2560910069211117234, guid: 9dc1fbbeaaa22bf4eaaf6cf5b8f02e60, type: 3}
+  motionMesh: {fileID: 2560910069211117234, guid: 344fe7e3659717146b896f854e0abeab, type: 3}
   mainCamera: {fileID: 963194225}
   MAX_NUMBER_OF_MARKERS: 10
   MIN_NUMBER_OF_MARKERS: 4
@@ -976,14 +976,15 @@ MonoBehaviour:
   - {x: -30, y: 30, z: 0}
   - {x: -30, y: 30, z: 0}
   - {x: 0, y: 60, z: 0}
-  targetVisibility: 0.8
+  k: 8
+  targetVisibility: 1
   targetOverlap: 0.2
   targetMarkerNumber: 7
-  targetPatternMatch: 0.5
+  targetSymmetry: 0
   weightVisibility: 1
-  weightOverlap: 0.2
-  weightMarkerNumber: 0.8
-  weightPatternMatch: 0.2
+  weightOverlap: 0.8
+  weightMarkerNumber: 0.632
+  weightSymmetry: 1
 --- !u!4 &1196702243
 Transform:
   m_ObjectHideFlags: 0

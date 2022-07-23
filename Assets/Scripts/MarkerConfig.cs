@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class MarkerConfig
 {
-
     const int layerMask = 1 << 3;
 
     private GameObject currentInstance;
@@ -276,6 +275,23 @@ public class MarkerConfig
         //Debug.Log("Count --> " + count + "Permutations -->" + Utils.permutationsWithoutRepetitions(this.config.Count, 2));
 
         return overlap / Utils.permutationsWithoutRepetitions(this.config.Count, 2);
+    }
+
+    public float getSymmetry(int k)
+    {
+        currentInstance.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            SymmetryHelper symmetry = new SymmetryHelper(this.markerList, k, axis);
+
+            if (symmetry.isSymmetry())
+            {
+                return 1.0f;
+            }
+        }
+
+        return 0.0f;
     }
 
     float alphaGaussian = 1.0f;

@@ -10,7 +10,6 @@ public class PatternMatchHelper
     public GameObject[] initialPattern;
     public Vector3[] transformations;
 
-    private bool isDistanceCalculated = false;
     private List<GameObject> patternInScene;
 
     public PatternMatchHelper(GameObject[] initialPattern, Vector3[] transformations)
