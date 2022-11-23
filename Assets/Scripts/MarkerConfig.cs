@@ -69,30 +69,21 @@ public class MarkerConfig
 
     //MOVE
 
-    public bool addMarker(Vector3[] vertices, int max)
+    public void addMarker(Vector3[] vertices, int max)
     {
 
-        bool isValid = false;
+        int randomIndex = (int)UnityEngine.Random.Range(0, vertices.Length - 1);
+        
+        Vector3 markerPosition = this.currentInstance.transform.TransformPoint(vertices[randomIndex]);
 
-        if(this.config.Count < max)
-        {
-            int randomIndex = (int)UnityEngine.Random.Range(0, vertices.Length - 1);
-
-            Vector3 markerPosition = this.currentInstance.transform.TransformPoint(vertices[randomIndex]);
-
-            GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
-            currentMarker.transform.parent = this.markerList.transform;
-
-            config.Add(new Marker(vertices[randomIndex], currentMarker));
-            isValid = true;
-            lastMove = MotionCaptureConstants.MOVE_ACTION_ADD;
-        }
-
-        return isValid;
-
+        GameObject currentMarker = Optimizer.InstanceMarker(markerPosition);
+        currentMarker.transform.parent = this.markerList.transform;
+        
+        config.Add(new Marker(vertices[randomIndex], currentMarker));
+        lastMove = MotionCaptureConstants.MOVE_ACTION_ADD;
     }
 
-    public bool relocateMarker(Vector3[] vertices)
+    public void relocateMarker(Vector3[] vertices)
     {
         lastMove = MotionCaptureConstants.MOVE_ACTION_MODIFY;
 
@@ -106,28 +97,18 @@ public class MarkerConfig
         Vector3 markerPosition = this.currentInstance.transform.TransformPoint(vertices[randomIndex]);
 
         config[randomMarker].MarkerInstance.transform.position = markerPosition;
-
-        return true;
     }
 
-    public bool deleteMarker(int min)
+    public void deleteMarker(int min)
     {
-        bool isValid = false;
+        int randomMarker = (int)UnityEngine.Random.Range(0, config.Count - 1);
 
-        if (this.config.Count > min)
-        {
-            int randomMarker = (int)UnityEngine.Random.Range(0, config.Count - 1);
+        selectedMarker = randomMarker;
+        lastMarkerPosition = config[randomMarker].Position;
 
-            selectedMarker = randomMarker;
-            lastMarkerPosition = config[randomMarker].Position;
-
-            GameObject.Destroy(config[randomMarker].MarkerInstance);
-            config.RemoveAt(randomMarker);
-            isValid = true;
-            lastMove = MotionCaptureConstants.MOVE_ACTION_DELETE;
-        }
-
-        return isValid;
+        GameObject.Destroy(config[randomMarker].MarkerInstance);
+        config.RemoveAt(randomMarker);
+        lastMove = MotionCaptureConstants.MOVE_ACTION_DELETE;
     }
 
     public void revertMove()
@@ -254,7 +235,7 @@ public class MarkerConfig
         return iteration + " SCORE : " + this.getScore(positions) + "%";
     }
 
-    public float getOverlap(float radius)
+    public float getOverlapAverage(float radius)
     {
         float overlap = 0;
 
@@ -266,6 +247,29 @@ public class MarkerConfig
                 {
                     if (Utils.checkCollision(this.config[i].MarkerInstance.transform.position, this.config[j].MarkerInstance.transform.position, radius, radius))
                     {
+                        return 1.0f;
+                    }
+                }
+            }
+        }
+
+        //Debug.Log("Count --> " + count + "Permutations -->" + Utils.permutationsWithoutRepetitions(this.config.Count, 2));
+
+        return 0.0f;
+    }
+
+    public float getOverlap(float radius)
+    {
+        float overlap = 0;
+
+        for (int i = 0; i < this.config.Count; i++)
+        {
+            for (int j = 0; j < this.config.Count; j++)
+            {
+                if (i != j)
+                {
+                    if (Utils.checkCollision(this.config[i].MarkerInstance.transform.position, this.config[j].MarkerInstance.transform.position, radius, radius))
+                    {
                         overlap += 1.0f;
                     }
                 }
@@ -273,6 +277,11 @@ public class MarkerConfig
         }
 
         //Debug.Log("Count --> " + count + "Permutations -->" + Utils.permutationsWithoutRepetitions(this.config.Count, 2));
+
+        if (overlap > 1.0f)
+        {
+            Debug.Log("Its is overlapping");
+        }
 
         return overlap / Utils.permutationsWithoutRepetitions(this.config.Count, 2);
     }
@@ -292,6 +301,25 @@ public class MarkerConfig
         }
 
         return 0.0f;
+    }
+
+    public float getSymmetryAverage(int k)
+    {
+        currentInstance.transform.position = new Vector3(0.0f, 0.0f, 0.0f);
+
+        float symmetryCost = 0.0f;
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            SymmetryHelper symmetry = new SymmetryHelper(this.markerList, k, axis);
+
+            if (symmetry.isSymmetry())
+            {
+                symmetryCost++;
+            }
+        }
+
+        return symmetryCost / 3;
     }
 
     float alphaGaussian = 1.0f;

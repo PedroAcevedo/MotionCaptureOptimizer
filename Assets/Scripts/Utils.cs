@@ -111,9 +111,7 @@ public class Utils
 
             if (j == pattern.Length)
             {
-                Debug.Log("Found Pattern at index --> " + (i - j));
                 j = lps[j - 1];
-
                 return true;
             }
             else if(i < text.Length && pattern[j] != text[i])

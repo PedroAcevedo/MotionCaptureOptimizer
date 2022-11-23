@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
+using UnityEditor;
 
 public class Optimizer : MonoBehaviour
 {
@@ -18,6 +20,12 @@ public class Optimizer : MonoBehaviour
     public GameObject[] initialPattern;
     public Vector3[] transformations;
     public int k;
+    public GameObject[] props;
+    public GameObject[] constrainedProps;
+    public int evaluatedObjects;
+    public string evaluationLabel;
+    public string folder;
+    public int testNumber;
 
     //Terms
     [Range(0.0f, 1.0f)]
@@ -47,7 +55,9 @@ public class Optimizer : MonoBehaviour
 
     private GameObject currentMotionMesh;
     private List<float> configurationScores;
-    private List<float> bestoScores;
+    private List<float> iterationCost;
+    private List<float> bestScores;
+    private List<float> optimalScores;
     private List<string> movements;
     private MarkerConfig tempConfig;
     private MarkerConfig currentConfig;
@@ -75,6 +85,13 @@ public class Optimizer : MonoBehaviour
     private float selectedScore;
     private PatternMatchHelper patternHelper;
     private int currentMove;
+    private GameObject floor;
+    private float prevBotz;
+    private float currentBotz;
+
+    private int currentProp = 0;
+    private float iterationTime = 0;
+    private float OneIterationTime = 0;
 
     #endregion
 
@@ -94,7 +111,8 @@ public class Optimizer : MonoBehaviour
         markerInstace = Resources.Load<GameObject>("Prefabs/Marker");
         movements = new List<string>();
         cameraPair = new List<Vector2>();
-        sphereRadius = markerInstace.GetComponent<SphereCollider>().radius * 0.01f;
+        sphereRadius = markerInstace.GetComponent<SphereCollider>().radius * 0.02f;
+        floor = GameObject.Find("Floor");
 
         //Define movements ADD: 0, MODIFY: 1, DELETE: 2
         movements.Add(MotionCaptureConstants.MOVE_ACTION_ADD);
@@ -102,8 +120,10 @@ public class Optimizer : MonoBehaviour
         movements.Add(MotionCaptureConstants.MOVE_ACTION_DELETE);
 
         configurationScores = new List<float>();
-        bestoScores = new List<float>();
-
+        iterationCost = new List<float>();
+        bestScores = new List<float>(); 
+        optimalScores = new List<float>(); 
+        
         posI = minAxis[0];
         posJ = minAxis[1];
         posK = minAxis[2];
@@ -120,6 +140,8 @@ public class Optimizer : MonoBehaviour
         initialTime = Time.time;
 
         selectCameraPair();
+
+        OneIterationTime = Time.time;
     }
 
     // Update is called once per frame
@@ -156,6 +178,7 @@ public class Optimizer : MonoBehaviour
                 }
 
                 configurationScores.Add(calculateCost(tempConfig));
+                iterationCost.Add(configurationScores[configurationScores.Count - 1]);
 
                 posI = minAxis[0];
                 posJ = minAxis[1];
@@ -166,23 +189,22 @@ public class Optimizer : MonoBehaviour
 
                 if (!initialEvaluation)
                 {
-                    float prob = Random.Range(0.0f, 1.0f);
+                    float prob = Random.Range(0, 100);
 
-                    float boltz = metropolisCriterion(selectedScore, configurationScores[currentIteration]);
-
-                    Debug.Log("Current Acceptance interval " + boltz);
+                    float boltz = metropolisCriterion(selectedScore, configurationScores[currentIteration]) * 100.0f;
 
                     if (prob < boltz)
                     {
                         isAccepted = true;
                     }
 
-                    if (configurationScores[currentIteration] < selectedScore || isAccepted == true)
+                    if (configurationScores[currentIteration] < selectedScore)
                     {
                         acceptSolution();
                     }
                     else
                     {
+                        iterationCost[iterationCost.Count - 1] = selectedScore;
                         tempConfig.revertMove();
                         nextMove();
                     }
@@ -190,13 +212,18 @@ public class Optimizer : MonoBehaviour
                 else
                 {
                     initialEvaluation = false;
-                    bestoScores.Add(configurationScores[currentIteration]);
+                    bestScores.Add(configurationScores[currentIteration]);
                     selectedScore = configurationScores[currentIteration];
+                    prevBotz = BoltzmannOF(selectedScore);
                     nextMove();
                 }
 
                 currentIteration++;
+                //if(currentIteration % 50 == 0) temperature = temperature * 0.95f;
                 validateAcceptanceInterval();
+                OneIterationTime = Time.time - OneIterationTime;
+                iterationTime += OneIterationTime;
+                OneIterationTime = Time.time;
             }
         }
     }
@@ -289,7 +316,7 @@ public class Optimizer : MonoBehaviour
     {
         if (currentIteration < iterations)
         {
-            currentMotionMesh = Instantiate(motionMesh, new Vector3(posI, posJ, posK), Quaternion.identity);
+            currentMotionMesh = Instantiate(props[currentProp], new Vector3(posI, posJ, posK), Quaternion.identity);
 
             MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
             meshVertices = currentMesh.mesh.vertices;
@@ -316,60 +343,40 @@ public class Optimizer : MonoBehaviour
     private void nextMove()
     {
         tempConfig.Score = 0.0f;
-        bool isvalidMove = false;
-
-        while (!isvalidMove)
+        float nextMoveSelector = Random.Range(0.0f, 1.0f);
+        
+        if (nextMoveSelector < MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY)
         {
-            float nextMoveSelector = Random.Range(0.0f, 1.0f);
-
-            if (nextMoveSelector < MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY) //0 40
+            currentMove = 0;
+        }
+        else
+        {
+            if (nextMoveSelector < (MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY + MotionCaptureConstants.MOVE_ACTION_MODIFY_PROBABILITY))
             {
-                currentMove = 0;
+                currentMove = 1;
             }
             else
             {
-                if (nextMoveSelector < (MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY + MotionCaptureConstants.MOVE_ACTION_MODIFY_PROBABILITY))
-                {
-                    currentMove = 1;
-                }
-                else
-                {
-                    currentMove = 2;
-                }
-            }
-
-            switch ((string)movements[currentMove])
-            {
-                case MotionCaptureConstants.MOVE_ACTION_ADD:
-
-                    isvalidMove = tempConfig.addMarker(meshVertices, MAX_NUMBER_OF_MARKERS);
-                    
-                    if (isvalidMove)
-                    {
-                        Debug.Log("MOVE: ADD MARKER");
-                    }
-
-                    break;
-                case MotionCaptureConstants.MOVE_ACTION_MODIFY:
-
-                    isvalidMove = tempConfig.relocateMarker(meshVertices);
-                    if (isvalidMove)
-                    {
-                        Debug.Log("MOVE: MODIFY MARKER");
-                    }
-
-                    break;
-                case MotionCaptureConstants.MOVE_ACTION_DELETE:
-
-                    isvalidMove = tempConfig.deleteMarker(MIN_NUMBER_OF_MARKERS);
-                    if (isvalidMove)
-                    {
-                        Debug.Log("MOVE: DELETE MARKER");
-                    }
-
-                    break;
+                currentMove = 2;
             }
         }
+
+        switch ((string)movements[currentMove])
+        {
+            case MotionCaptureConstants.MOVE_ACTION_ADD:
+                tempConfig.addMarker(meshVertices, MAX_NUMBER_OF_MARKERS);
+                Debug.Log("MOVE: ADD MARKER");
+                break;
+            case MotionCaptureConstants.MOVE_ACTION_MODIFY:
+                tempConfig.relocateMarker(meshVertices);
+                Debug.Log("MOVE: MODIFY MARKER");
+                break;
+            case MotionCaptureConstants.MOVE_ACTION_DELETE:
+                tempConfig.deleteMarker(MIN_NUMBER_OF_MARKERS);
+                Debug.Log("MOVE: DELETE MARKER");
+                break;
+        }
+
 
     }
 
@@ -378,7 +385,7 @@ public class Optimizer : MonoBehaviour
         float costVisibility = Mathf.Abs(markerConfig.getScore(totalPositions) - targetVisibility);
         float costOverlap = Mathf.Abs(markerConfig.getOverlap(sphereRadius) - targetOverlap);
         float costMarkerNumber = 1 - markerConfig.getMarkerCost(targetMarkerNumber);
-        float costSymmetry = Mathf.Abs(markerConfig.getSymmetry(k));
+        float costSymmetry = Mathf.Abs(markerConfig.getSymmetry(k) - targetSymmetry);
 
         if (costSymmetry == 1)
             Debug.Log("There is a Symmetry");
@@ -399,17 +406,17 @@ public class Optimizer : MonoBehaviour
     {
         switch (currentIteration)
         {
-            case 150:
+            case 50:
                 temperature = 0.75f;
                 break;
-            case 300:
+            case 100:
                 temperature = 0.5f;
                 break;
-            case 450:
+            case 150:
                 temperature = 0.25f;
                 break;
-            case 600:
-                temperature = 0.002f;
+            case 200:
+                temperature = 0.00000000000000001f;
                 break;
         }
     }
@@ -417,13 +424,14 @@ public class Optimizer : MonoBehaviour
     private void acceptSolution()
     {
         isAccepted = false;
+        prevBotz = currentBotz;
         lastIteration = currentIteration;
         currentConfig = copyMarkerConfig(tempConfig);
         BestConfig = currentIteration;
         selectedScore = configurationScores[currentIteration];
-        bestoScores.Add(selectedScore);
+        bestScores.Add(selectedScore);
 
-        Debug.Log("Iteration "+ currentIteration + "Accepted solutions " + bestoScores.Count + " current cost -> " + configurationScores[currentIteration]);
+        Debug.Log("Iteration "+ currentIteration + " Accepted solutions " + bestScores.Count + " Temperature " + temperature + " current cost -> " + configurationScores[currentIteration]);
 
         nextMove();
     }
@@ -433,26 +441,46 @@ public class Optimizer : MonoBehaviour
         complete = true;
 
         tempConfig.clearConfig();
-        currentConfig.changePosition(new Vector3(0.0f, minAxis[1], 0.0f));
+
+        floor.GetComponent<BoxCollider>().enabled = true;
+
+        GameObject mesh = currentMotionMesh.transform.GetChild(0).GetChild(0).gameObject;
+
+        currentConfig.changePosition(new Vector3(0.0f, 5.0f, 0.0f));
         currentConfig.resetConfigToCurrent();
 
-        OptimizerReportController.reportCostLog(bestoScores);
+        OptimizerReportController.reportCostLog(iterationCost, props[currentProp].name + "_" + evaluationLabel, folder, testNumber);
+
+        Debug.Log("BEST CONFIG: " + bestScores[bestScores.Count - 1]);
+
+        optimalScores.Add(bestScores[bestScores.Count - 1]);
+
+        mesh.AddComponent<BoxCollider>();
+        currentMotionMesh.AddComponent<Rigidbody>();
+
+        currentConfig.changePosition(new Vector3(0.0f, 5.0f, 0.0f));
         
-        Debug.Log("BEST CONFIG: ");
-        calculateCost(currentConfig);
         Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
+
+        PrefabUtility.SaveAsPrefabAsset(currentConfig.CurrentInstance, "Assets/Resources/OptimizedMeshes/" + testNumber + "/" + currentConfig.CurrentInstance.name.Split('(')[0] + "_" +  evaluationLabel + "_optimized.prefab");
+
+
+        Debug.Log("AVERAGE TIME PER ITERATION: " + (iterationTime / currentIteration) + " SEG");
+
+        //nextObject();
+
     }
 
     private bool isCompleted()
     {
-        bool isCompleted = true; 
-        
-        if(bestoScores.Count > 20 && temperature < 0.1)
+        bool isCompleted = true;
+
+        if (iterationCost.Count > 200)
         {
-            int lastCosts = bestoScores.Count - 20;
-            for (int i = 0; i < 20; i++)
+            int lastCosts = iterationCost.Count - 50;
+            for (int i = 0; i < 50; i++)
             {
-                if (Mathf.Abs((bestoScores[bestoScores.Count - 1] - bestoScores[lastCosts + i]) / bestoScores[bestoScores.Count - 1]) > 0.05f)
+                if (Mathf.Abs((iterationCost[iterationCost.Count - 1] - iterationCost[lastCosts + i]) / iterationCost[iterationCost.Count - 1]) > 0.03f)
                 {
                     isCompleted = false;
                 }
@@ -462,10 +490,17 @@ public class Optimizer : MonoBehaviour
             isCompleted = false;
         }
 
-        if (currentIteration > (lastIteration + 100) && temperature < 0.1)
+        if (isCompleted)
         {
-            isCompleted = true;
+            Debug.Log("Completed by differences");
         }
+
+        //if (currentIteration > (lastIteration + 20) && temperature < 0.1)
+        //{
+        //    Debug.Log("Completed by not found anything");
+
+        //    isCompleted = true;
+        //}
 
         return isCompleted;
     }
@@ -477,24 +512,60 @@ public class Optimizer : MonoBehaviour
 
     private float metropolisCriterion(float currentCost, float proposedCost)
     {
-        float f = BoltzmannOF(currentCost);
-        float fa = BoltzmannOF(proposedCost);
+        currentBotz = BoltzmannOF(proposedCost);
+        float f = prevBotz;
+        float fa = currentBotz;
 
         switch ((string)movements[currentMove])
         {
             case MotionCaptureConstants.MOVE_ACTION_ADD:
-                return Mathf.Min(1.0f, (MotionCaptureConstants.MOVE_ACTION_DELETE_PROBABILITY / MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY) * (fa / f));
+                return Mathf.Min(1.0f, (MotionCaptureConstants.MOVE_ACTION_DELETE_PROBABILITY / MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY) * ((MAX_NUMBER_OF_MARKERS - currentConfig.Config.Count) / tempConfig.Config.Count) * (fa / f));
                 break;
             case MotionCaptureConstants.MOVE_ACTION_MODIFY:
                 return Mathf.Min(1.0f, (fa / f));
                 break;
             case MotionCaptureConstants.MOVE_ACTION_DELETE:
-                return Mathf.Min(1.0f, (MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY / MotionCaptureConstants.MOVE_ACTION_DELETE_PROBABILITY) * (fa / f));
+                return MAX_NUMBER_OF_MARKERS - tempConfig.Config.Count != 0? Mathf.Min(1.0f, (MotionCaptureConstants.MOVE_ACTION_ADD_PROBABILITY / MotionCaptureConstants.MOVE_ACTION_DELETE_PROBABILITY) * (currentConfig.Config.Count / (MAX_NUMBER_OF_MARKERS - tempConfig.Config.Count)) * (fa / f)) : 0.0f;
                 break;
         }
 
         return 0.0f;
     }
 
+    private void nextObject()
+    {
+        currentProp++;
+
+        if(currentProp < evaluatedObjects)
+        {
+            complete = false;
+            isAccepted = false;
+
+            configurationScores.Clear();
+            iterationCost.Clear();
+            bestScores.Clear();
+
+            posI = minAxis[0];
+            posJ = minAxis[1];
+            posK = minAxis[2];
+
+            temperature = 1.0f;
+            currentIteration = 0;
+            initialEvaluation = true;
+
+            Destroy(currentConfig.CurrentInstance);
+            tempConfig = null;
+            currentConfig = null;
+
+            InstanceMesh();
+        } else
+        {
+            if(currentProp == evaluatedObjects)
+            {
+                OptimizerReportController.reportPropsData(optimalScores, props, evaluationLabel, folder, testNumber);
+            }
+        }
+    }
+    
     #endregion
 }

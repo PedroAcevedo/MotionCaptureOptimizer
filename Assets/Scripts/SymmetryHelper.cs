@@ -100,25 +100,32 @@ public class SymmetryHelper
         {
             foreach (SymmetryCycle3D cycle in cycleList3D)
             {
-                if (cycle.isRotational(k)) Debug.Log(k + "-fold symmetry in cycle " + cycleList3D.IndexOf(cycle));
+                cycle.isRotational(k);
             }
         }
 
-        int result = cycleList3D[0].fold;
 
-        for (int i = 1; i < cycleList3D.Count; i++)
+        int result = 0;
+
+        if (cycleList3D.Count > 0)
         {
-            result = Utils.GCD(result, cycleList3D[i].fold);
+            result = cycleList3D[0].fold;
+
+            for (int i = 1; i < cycleList3D.Count; i++)
+            {
+                result = Utils.GCD(result, cycleList3D[i].fold);
+            }
         }
 
-        if (result == 1)
-        {
-            Debug.Log("No symmetry");
-        }
-        else
-        {
-            Debug.Log("The points has a " + result + "-fold rotational symmetry");
-        }
+
+        //if (result == 1)
+        //{
+        //    Debug.Log("No symmetry");
+        //}
+        //else
+        //{
+        //    Debug.Log("The points has a " + result + "-fold rotational symmetry");
+        //}
 
         return result;
     }
@@ -158,7 +165,7 @@ public class SymmetryHelper
         for (int i = 0; i < pointsCoord3D.Count; i++)
         {
             pointsCoord3D[i] = pointsCoord3D[i] - centroid;
-            pointCloud.transform.GetChild(i).position = pointsCoord3D[i];
+            //pointCloud.transform.GetChild(i).position = pointsCoord3D[i];
 
             Vector3 polar = Utils.pointToCylindricalCoord(pointsCoord3D[i]);
 
@@ -196,7 +203,7 @@ public class SymmetryHelper
             cycle.initCycle();
         }
 
-        Debug.Log("Ciclos number --> " + cycleList3D.Count);
+        //Debug.Log("Ciclos number --> " + cycleList3D.Count);
     }
 
     public float distanceInPolar(Vector2 a, Vector2 b)

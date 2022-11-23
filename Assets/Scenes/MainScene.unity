@@ -539,7 +539,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 0, y: 7.18, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -950,7 +950,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numberOfMarkers: 5
   iterations: 20
-  evaluatePositions: 2
+  evaluatePositions: 4
   cameras:
   - {fileID: 1614999382}
   - {fileID: 80844404}
@@ -960,9 +960,9 @@ MonoBehaviour:
   - {fileID: 1767205698}
   - {fileID: 902737774}
   - {fileID: 683309309}
-  motionMesh: {fileID: 2560910069211117234, guid: 344fe7e3659717146b896f854e0abeab, type: 3}
+  motionMesh: {fileID: 8697541081652792202, guid: 498f83364a6b955408413dcb377c8576, type: 3}
   mainCamera: {fileID: 963194225}
-  MAX_NUMBER_OF_MARKERS: 10
+  MAX_NUMBER_OF_MARKERS: 20
   MIN_NUMBER_OF_MARKERS: 4
   initialPattern:
   - {fileID: 132223353118803599, guid: 35c844a6737f0c0429156992e0b3dd3b, type: 3}
@@ -977,13 +977,42 @@ MonoBehaviour:
   - {x: -30, y: 30, z: 0}
   - {x: 0, y: 60, z: 0}
   k: 8
+  props:
+  - {fileID: 575209472766992330, guid: bda29e3ba42617b4ab2b727cc1456d5f, type: 3}
+  - {fileID: 5683349575635738830, guid: b97568a70144f20478161899c455644b, type: 3}
+  - {fileID: 539668167464127184, guid: 72cb18e6c91e09e4490efc083bda28fd, type: 3}
+  - {fileID: 8231583368121495968, guid: 48a869717538da54780960a7cc0b8eb2, type: 3}
+  - {fileID: 5980921672706384186, guid: c1209a53d06565741aa2c433122f8b9c, type: 3}
+  - {fileID: 6391845466227229186, guid: 84441e51b3765b649b27a5f2b5fbaa4d, type: 3}
+  - {fileID: 7812482634337742574, guid: f1a4983671e9410489f41b6cd50dbaa8, type: 3}
+  - {fileID: 2047682672182708822, guid: 271782d8e4bb4584f9179828c3108d0c, type: 3}
+  - {fileID: 3789153125741750145, guid: 7f39c60b6d7ee7a4b826933924eb7dc0, type: 3}
+  - {fileID: 3882451235976820735, guid: 49607fd91c8ca4a4e94d33a716cb46ce, type: 3}
+  - {fileID: 4521958928392349434, guid: 7d26d1a16ec83604783674869cc784c6, type: 3}
+  - {fileID: 8697541081652792202, guid: 498f83364a6b955408413dcb377c8576, type: 3}
+  - {fileID: 5233168938248853784, guid: c024e2867d62afc41b779bfdd1a3ff72, type: 3}
+  constrainedProps:
+  - {fileID: 1043106848138483271, guid: c962fa56bb062d04a89cc13952341621, type: 3}
+  - {fileID: 181356165804967516, guid: d61c428758f84ee4e8e61d5b91300010, type: 3}
+  - {fileID: 3612082196179562420, guid: 37d7ffe3e9861f344a13c06d90fd9a72, type: 3}
+  - {fileID: 2349667081225451289, guid: 7a4568afc76e4f84ca8e2a271cb06167, type: 3}
+  - {fileID: 6193288951058193317, guid: 887911acac82268428fe78984be6e499, type: 3}
+  - {fileID: 8375619674460907265, guid: b3827546d6c30dc4990133fab44d40b0, type: 3}
+  - {fileID: 5163645076155144364, guid: 23f56ff086e416e419be60150f1507a2, type: 3}
+  - {fileID: 3032566330104230834, guid: 09f3484347f37594f9bd90c6f200ada5, type: 3}
+  - {fileID: 6369364555083747161, guid: 3a83363e9e3c8a8429441dfdd3ac07d0, type: 3}
+  - {fileID: 4559827803999624644, guid: bc60a76ef4477924788fa22cd8ba66fd, type: 3}
+  evaluatedObjects: 10
+  evaluationLabel: G_4x4x4
+  folder: Positions
+  testNumber: 1
   targetVisibility: 1
-  targetOverlap: 0.2
+  targetOverlap: 0
   targetMarkerNumber: 7
   targetSymmetry: 0
   weightVisibility: 1
-  weightOverlap: 0.8
-  weightMarkerNumber: 0.632
+  weightOverlap: 1
+  weightMarkerNumber: 0.8
   weightSymmetry: 1
 --- !u!4 &1196702243
 Transform:
