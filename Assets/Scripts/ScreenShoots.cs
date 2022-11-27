@@ -4,14 +4,48 @@ using UnityEngine;
 
 public class ScreenShoots : MonoBehaviour
 {
+    public List<GameObject> propList;
+    public List<GameObject> optimizedMeshes;
+    public bool showOptimal;
+
+    private int currentProp = 0;
+    private int propsNumber;
+
     // Start is called before the first frame update
     void Start()
     {
         
+        if (showOptimal)
+        {
+            propList[0].SetActive(false);
+            propsNumber = optimizedMeshes.Count;
+        }
+        else
+        {
+            optimizedMeshes[0].SetActive(false);
+            propsNumber = propList.Count;
+        }
     }
 
     void Update()
     {
+
+        if (Input.GetKeyDown("x"))
+        {
+            if (showOptimal)
+            {
+                optimizedMeshes[currentProp].SetActive(false);
+            }
+            else
+            {
+                propList[currentProp].SetActive(false);
+            }
+
+            currentProp += 1;
+            currentProp = currentProp % propsNumber;
+            changeCurrentProp();
+        }
+
         if (Input.GetMouseButtonDown(0))
         { // capture screen shot on left mouse button down
           // ​
@@ -26,6 +60,18 @@ public class ScreenShoots : MonoBehaviour
                                     ".png"; // put youre favorite data format here
             ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(folderPath, screenshotName), 2); // takes the sceenshot, the "2" is for the scaled resolution, you can put this to 600 but it will take really long to scale the image up
             Debug.Log(folderPath + screenshotName); // You get instant feedback in the console
+        }
+    }
+
+    void changeCurrentProp()
+    {
+        if (showOptimal)
+        {
+            optimizedMeshes[currentProp].SetActive(true);
+        }
+        else
+        {
+            propList[currentProp].SetActive(true);
         }
     }
 }
