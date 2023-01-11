@@ -44,7 +44,7 @@ def get_p_value(df):
 
 
 get_average_results("NumberOfMarkers", ["5_marker","10_marker","15_marker"]) #repetead mesure ANOVA
-get_average_results("Positions", ["4x4x4","8x8x8"]) #PER SAMPLE T test
+get_average_results("Positions", ["4x4x4","8x8x8", "12x12x12"]) #PER SAMPLE T test
 get_average_results("Constrains", ["constrained","unconstrained"]) 
 
 # for i in range(len(props)):

@@ -221,9 +221,9 @@ public class Optimizer : MonoBehaviour
                 currentIteration++;
                 //if(currentIteration % 50 == 0) temperature = temperature * 0.95f;
                 validateAcceptanceInterval();
-                OneIterationTime = Time.time - OneIterationTime;
-                iterationTime += OneIterationTime;
-                OneIterationTime = Time.time;
+                //OneIterationTime = Time.time - OneIterationTime;
+                //iterationTime += OneIterationTime;
+                //OneIterationTime = Time.time;
             }
         }
     }
@@ -465,9 +465,9 @@ public class Optimizer : MonoBehaviour
         PrefabUtility.SaveAsPrefabAsset(currentConfig.CurrentInstance, "Assets/Resources/OptimizedMeshes/" + testNumber + "/" + currentConfig.CurrentInstance.name.Split('(')[0] + "_" +  evaluationLabel + "_optimized.prefab");
 
 
-        Debug.Log("AVERAGE TIME PER ITERATION: " + (iterationTime / currentIteration) + " SEG");
+        //Debug.Log("AVERAGE TIME PER ITERATION: " + (iterationTime / currentIteration) + " SEG");
 
-        //nextObject();
+        nextObject();
 
     }
 
