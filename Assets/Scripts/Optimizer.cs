@@ -35,7 +35,7 @@ public class Optimizer : MonoBehaviour
     [Range(1, 20)]
     public int targetMarkerNumber;
     [Range(0.0f, 1.0f)]
-    public int targetSymmetry;
+    public float targetSymmetry;
 
     //Weight
     [Range(0.0f, 1.0f)]

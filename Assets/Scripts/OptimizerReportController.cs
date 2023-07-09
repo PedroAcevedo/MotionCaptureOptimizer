@@ -44,4 +44,24 @@ public class OptimizerReportController
 
         writer.Close();
     }
+
+    public static void reportExpertProp(List<float> bestValues, GameObject[] props)
+    {
+        string destination = Application.dataPath + "/Resources/Data/expert_results.csv";
+
+        List<string> costInfo = new List<string>();
+        costInfo.Add("Prop,Optimal");
+
+        for (int i = 0; i < 10; i++)
+        {
+            costInfo.Add(props[i].name + "," + bestValues[i]);
+        }
+
+        StreamWriter writer = new StreamWriter(destination, false);
+
+        foreach (string info in costInfo)
+            writer.WriteLine(info);
+
+        writer.Close();
+    }
 }

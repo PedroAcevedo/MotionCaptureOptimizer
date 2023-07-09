@@ -6,11 +6,13 @@ props = ['Umbrella','Pingpong','Backpack','Bottle','Glass','Box','Hammer','Sword
 
 def get_average_results(folder, conditions):
     
-    df = pd.DataFrame({ "prop": props })
+    print(props[:5])
+
+    df = pd.DataFrame({ "prop": props[:5] })
 
     for test in conditions:
-        average_per_condition = pd.DataFrame({ "prop": props })
-        for i in range(10):
+        average_per_condition = pd.DataFrame({ "prop": props[:5] })
+        for i in range(5):
             data = pd.read_csv(f"{folder}/final_{test}_{i+1}_results.csv")
             average_per_condition["final_" + str(test) + "_" + str(i)] = data["Optimal"]
         average_per_condition['mean_' + str(test)] = average_per_condition.iloc[:, 1:6].mean(axis=1)
@@ -43,9 +45,11 @@ def get_p_value(df):
     print(f"The p-value of the data is {p}")
 
 
-get_average_results("NumberOfMarkers", ["5_marker","10_marker","15_marker"]) #repetead mesure ANOVA
-get_average_results("Positions", ["4x4x4","8x8x8", "12x12x12"]) #PER SAMPLE T test
-get_average_results("Constrains", ["constrained","unconstrained"]) 
+# get_average_results("NumberOfMarkers", ["5_marker","10_marker","15_marker"]) #repetead mesure ANOVA
+# get_average_results("Positions", ["4x4x4","8x8x8", "12x12x12"]) #PER SAMPLE T test
+# get_average_results("Constrains", ["constrained","unconstrained"]) 
+#get_average_results("CostTerms", ["layout-only","penalty-only", "total"]) 
+get_average_results("ContratsCosts", ["overlap-only","symmetry-only", "visibility-only", "marker-number-only", "total"]) 
 
 # for i in range(len(props)):
 #     get_average_results_for_prop("NumberOfMarkers", ["5_marker","10_marker","15_marker"], i)
