@@ -8,20 +8,19 @@ public class Optimizer : MonoBehaviour
 {
 
     #region  Public Fields
-
-    public int numberOfMarkers;
-    public int iterations;
-    public float evaluatePositions;
     public List<GameObject> cameras;
-    public GameObject motionMesh;
-    public GameObject mainCamera;
-    public int MAX_NUMBER_OF_MARKERS = 10;
-    public int MIN_NUMBER_OF_MARKERS = 4;
     public GameObject[] initialPattern;
     public Vector3[] transformations;
-    public int k;
     public GameObject[] props;
     public GameObject[] constrainedProps;
+    public GameObject motionMesh;
+    public GameObject mainCamera;
+    public GameObject canvas;
+    public int MAX_NUMBER_OF_MARKERS = 10;
+    public int MIN_NUMBER_OF_MARKERS = 4;
+    public int numberOfMarkers;
+    public float evaluatePositions;
+    public int k;
     public int evaluatedObjects;
     public string evaluationLabel;
     public string folder;
@@ -314,16 +313,11 @@ public class Optimizer : MonoBehaviour
 
     private void InstanceMesh()
     {
-        if (currentIteration < iterations)
-        {
-            currentMotionMesh = Instantiate(props[currentProp], new Vector3(posI, posJ, posK), Quaternion.identity);
-
-            MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
+        currentMotionMesh = Instantiate(props[currentProp], new Vector3(posI, posJ, posK), Quaternion.identity);
+        MeshFilter currentMesh = currentMotionMesh.transform.GetChild(1).GetComponentInChildren<MeshFilter>();
             meshVertices = currentMesh.mesh.vertices;
-
-            tempConfig = defineMarkerConfig();
-            currentConfig = copyMarkerConfig(tempConfig);
-        }
+        tempConfig = defineMarkerConfig();
+        currentConfig = copyMarkerConfig(tempConfig);
     }
 
     private MarkerConfig defineMarkerConfig()
@@ -464,7 +458,6 @@ public class Optimizer : MonoBehaviour
 
         PrefabUtility.SaveAsPrefabAsset(currentConfig.CurrentInstance, "Assets/Resources/OptimizedMeshes/" + testNumber + "/" + currentConfig.CurrentInstance.name.Split('(')[0] + "_" +  evaluationLabel + "_optimized.prefab");
 
-
         //Debug.Log("AVERAGE TIME PER ITERATION: " + (iterationTime / currentIteration) + " SEG");
 
         nextObject();
@@ -562,6 +555,7 @@ public class Optimizer : MonoBehaviour
         {
             if(currentProp == evaluatedObjects)
             {
+                canvas.SetActive(true);
                 OptimizerReportController.reportPropsData(optimalScores, props, evaluationLabel, folder, testNumber);
             }
         }
