@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using UnityEditor;
+using UnityEngine.SceneManagement;
 
 public class Optimizer : MonoBehaviour
 {
@@ -25,6 +26,7 @@ public class Optimizer : MonoBehaviour
     public string evaluationLabel;
     public string folder;
     public int testNumber;
+    public bool showImage;
 
     //Terms
     [Range(0.0f, 1.0f)]
@@ -47,6 +49,8 @@ public class Optimizer : MonoBehaviour
     public float weightSymmetry;
 
     public static GameObject markerInstace;
+    public static bool showLastResult;
+    public static string optimizedPropName;
 
     #endregion
 
@@ -456,7 +460,9 @@ public class Optimizer : MonoBehaviour
         
         Debug.Log("TOTAL TIME: " + (Time.time - initialTime) + " SEG");
 
-        PrefabUtility.SaveAsPrefabAsset(currentConfig.CurrentInstance, "Assets/Resources/OptimizedMeshes/" + testNumber + "/" + currentConfig.CurrentInstance.name.Split('(')[0] + "_" +  evaluationLabel + "_optimized.prefab");
+        Optimizer.optimizedPropName = currentConfig.CurrentInstance.name.Split('(')[0] + "_" + evaluationLabel + "_optimized";
+
+        PrefabUtility.SaveAsPrefabAsset(currentConfig.CurrentInstance, "Assets/Resources/OptimizedMeshes/" + testNumber + "/" + Optimizer.optimizedPropName + ".prefab");
 
         //Debug.Log("AVERAGE TIME PER ITERATION: " + (iterationTime / currentIteration) + " SEG");
 
@@ -555,8 +561,14 @@ public class Optimizer : MonoBehaviour
         {
             if(currentProp == evaluatedObjects)
             {
-                canvas.SetActive(true);
+                canvas.SetActive(!showImage);
                 OptimizerReportController.reportPropsData(optimalScores, props, evaluationLabel, folder, testNumber);
+
+                if (showImage)
+                {
+                    Optimizer.showLastResult = true;
+                    SceneManager.LoadScene("Images");
+                }
             }
         }
     }

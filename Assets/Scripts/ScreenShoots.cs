@@ -7,6 +7,7 @@ public class ScreenShoots : MonoBehaviour
     public List<GameObject> propList;
     public Transform meshList;
     public bool showOptimal;
+    public Material meshMaterial;
 
     private List<GameObject> optimizedMeshes;
     private int currentProp = 0;
@@ -16,6 +17,21 @@ public class ScreenShoots : MonoBehaviour
     void Start()
     {
         optimizedMeshes = new List<GameObject>();
+
+        if (Optimizer.showLastResult)
+        {
+            GameObject lastPrefab = Resources.Load("OptimizedMeshes/1/" + Optimizer.optimizedPropName) as GameObject;
+
+            GameObject prop = Instantiate(lastPrefab, meshList.GetChild(0).position, meshList.GetChild(0).rotation);
+            prop.transform.localScale = meshList.GetChild(0).localScale;
+
+            meshList.GetChild(0).gameObject.SetActive(false);
+
+            prop.GetComponent<Rigidbody>().useGravity = false;
+            prop.transform.GetChild(0).GetChild(0).GetComponent<Renderer>().material = meshMaterial;
+
+            optimizedMeshes.Add(prop);
+        }
 
         foreach (Transform child in meshList)
         {
